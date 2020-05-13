@@ -118,7 +118,7 @@ def clutter_mask(
     if len(rslt) == 0:
         raise EmptyFieldError("No Clutter detected")
 
-    nr = 20
+    nr = int(max_range // 1000)
     na = 360
 
     cmask = np.zeros((len(rslt), na, nr))
