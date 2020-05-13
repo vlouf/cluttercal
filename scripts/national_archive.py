@@ -67,7 +67,7 @@ def check_rid():
     '''
     Check if the Radar ID provided exists.
     '''
-    indir = f'/g/data/rq0/odim_archive/odim_pvol/{RID}'
+    indir = f'/g/data/rq0/level_1/odim_pvol/{RID}'
     return os.path.exists(indir)
 
 
@@ -130,7 +130,7 @@ def get_radar_archive_file(date):
         Radar archive if it exists at the given date.
     '''
     datestr = date.strftime('%Y%m%d')
-    file = f"/g/data/rq0/odim_archive/odim_pvol/{RID}/{date.year}/vol/{RID}_{datestr}.pvol.zip"
+    file = f"/g/data/rq0/level_1/odim_pvol/{RID}/{date.year}/vol/{RID}_{datestr}.pvol.zip"
     if not os.path.exists(file):
         return None
 
@@ -224,7 +224,7 @@ def gen_cmask(radar_file_list, date, file_prefix=None):
             cmask = cluttercal.clutter_mask(radar_file_list,
                                             refl_name="total_power",
                                             refl_threshold=REFL_THLD,
-                                            max_range=20e3,
+                                            max_range=150e3,
                                             freq_threshold=50,
                                             use_dask=True)
             cmask.to_netcdf(outputfile)
@@ -311,7 +311,7 @@ if __name__ == "__main__":
         "-o",
         "--output",
         dest="output",
-        default='/scratch/kl02/vhl548/rca_output/',
+        default='/scratch/kl02/vhl548/rca_longrange/',
         type=str,
         help="Output directory")
     parser.add_argument(
