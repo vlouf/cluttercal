@@ -313,7 +313,7 @@ if __name__ == "__main__":
         "-o",
         "--output",
         dest="output",
-        default='/scratch/kl02/vhl548/rca_longrange/',
+        default='/scratch/kl02/vhl548/rca_longrange_thld/',
         type=str,
         help="Output directory")
     parser.add_argument(
