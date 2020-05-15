@@ -4,7 +4,7 @@ National archive.
 
 @creator: Valentin Louf <valentin.louf@bom.gov.au>
 @institution: Monash University and Bureau of Meteorology
-@date: 30/03/2020
+@date: 15/05/2020
 
     buffer
     check_rid
@@ -213,7 +213,9 @@ def gen_cmask(radar_file_list, date, file_prefix=None):
         file_prefix = f'{RID}_'
     datestr = date.strftime('%Y%m%d')
 
-    outpath = os.path.join(OUTPATH, 'cmasks', f'{RID}')
+    outpath = os.path.join(OUTPATH, 'cmasks')
+    mkdir(outpath)
+    outpath = os.path.join(outpath, f'{RID}')
     mkdir(outpath)
     outputfile = os.path.join(outpath, file_prefix + f'{datestr}.nc')
 
@@ -351,6 +353,8 @@ if __name__ == "__main__":
     REFL_NAME = args.refl_name
     REFL_THLD = args.refl_thld
     ZIPDIR = '/scratch/kl02/vhl548/unzipdir/'
+
+    mkdir(OUTPATH)
 
     if not check_rid():
         parser.error('Invalid Radar ID.')
