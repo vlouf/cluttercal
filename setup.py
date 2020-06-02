@@ -139,8 +139,7 @@ setup(
     # issues, where the source is hosted, where to say thanks to the package
     # maintainers, and where to support the project financially. The key is
     # what's used to render the link text on PyPI.
-    project_urls={  # Optional
-        'Bug Reports': 'https://github.com/vlouf/suncal/issues',
-        'Source': 'https://github.com/vlouf/suncal/',
+    project_urls={  # Optional        
+        'Source': 'https://github.com/vlouf/cluttercal/',
     },
 )
