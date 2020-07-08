@@ -4,7 +4,7 @@ National archive.
 
 @creator: Valentin Louf <valentin.louf@bom.gov.au>
 @institution: Monash University and Bureau of Meteorology
-@date: 15/05/2020
+@date: 08/07/2020
 
     buffer
     check_rid
@@ -226,7 +226,7 @@ def gen_cmask(radar_file_list, date, file_prefix=None):
             cmask = cluttercal.clutter_mask(radar_file_list,
                                             refl_name="total_power",
                                             refl_threshold=REFL_THLD,
-                                            max_range=150e3,
+                                            max_range=20e3,
                                             freq_threshold=50,
                                             use_dask=True)
             cmask.to_netcdf(outputfile)
@@ -313,7 +313,7 @@ if __name__ == "__main__":
         "-o",
         "--output",
         dest="output",
-        default='/scratch/kl02/vhl548/rca_longrange_thld/',
+        default='/scratch/kl02/vhl548/rca_output/',
         type=str,
         help="Output directory")
     parser.add_argument(
