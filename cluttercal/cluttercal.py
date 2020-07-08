@@ -134,7 +134,7 @@ def extract_clutter(infile, clutter_mask, refl_name="total_power"):
     A = (np.round(A) % 360).astype(int)
 
     # Mask.
-    RC, AC = np.meshgrid(np.arange(21), np.arange(360))
+    RC, AC = np.meshgrid(np.arange(20), np.arange(360))
 
     npos = np.where(clutter_mask)
     for ir, ia in zip(RC[npos], AC[npos]):
