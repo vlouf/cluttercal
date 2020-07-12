@@ -149,6 +149,7 @@ def clutter_mask(
 
     radar = _read_radar(radar_file_list[0], refl_name)
     dset.attrs = radar.metadata
+    dset.attrs['range_max'] = max_range
     dset.range.attrs = {"units": "km", "long_name": "radar_range"}
     dset.azimuth.attrs = {"units": "degrees", "long_name": "radar_azimuth"}
     dset.clutter_mask.attrs = {
