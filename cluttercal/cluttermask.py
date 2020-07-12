@@ -5,16 +5,16 @@ title: cluttermask.py
 author: Valentin Louf
 email: valentin.louf@bom.gov.au
 institution: Monash University and Bureau of Meteorology
-date: 24/03/2020
+date: 12/07/2020
 """
 import gc
+import warnings
+
 import dask
-import dask.bag as db
-
 import pyart
-import xarray as xr
 import numpy as np
-
+import xarray as xr
+import dask.bag as db
 
 class EmptyFieldError(Exception):
     pass
@@ -47,10 +47,10 @@ def _read_radar(infile, refl_name):
 
     try:
         radar.fields[refl_name]
-    except KeyError:        
+    except KeyError:
         print(f'!!!! Problem with {infile} - No {refl_name} field does not exist. !!!!')
         del radar
-        raise 
+        raise
 
     return radar
 
@@ -108,11 +108,13 @@ def clutter_mask(
         del radar
         return rclutter, aziclutter, zclutter
 
-    if use_dask:
-        bag = db.from_sequence(radar_file_list).map(find_clutter_pos)
-        rslt = bag.compute()
-    else:
-        rslt = [find_clutter_pos(d) for d in radar_file_list]
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore')
+        if use_dask:
+            bag = db.from_sequence(radar_file_list).map(find_clutter_pos)
+            rslt = bag.compute()
+        else:
+            rslt = [find_clutter_pos(d) for d in radar_file_list]
 
     rslt = [r for r in rslt if r is not None]
     if len(rslt) == 0:
@@ -131,9 +133,8 @@ def clutter_mask(
         zmask[idx, apos, rpos] = refl
     zmask = np.ma.masked_invalid(zmask)
 
-    arr = (~np.ma.masked_less(cmask.sum(axis=0) / 1.44, freq_threshold).mask) & (
-        zmask.mean(axis=0).filled(0) > refl_threshold
-    )
+    arr = ((~np.ma.masked_less(cmask.sum(axis=0) / 1.44, freq_threshold).mask) & 
+           (zmask.mean(axis=0) > refl_threshold))
 
     if np.sum(arr) == 0:
         raise EmptyFieldError("No Clutter detected")
