@@ -48,9 +48,8 @@ def _read_radar(infile, refl_name):
     try:
         radar.fields[refl_name]
     except KeyError:
-        print(f'!!!! Problem with {infile} - No {refl_name} field does not exist. !!!!')
         del radar
-        raise
+        raise KeyError(f'!!!! Problem with {infile} - No {refl_name} field does not exist. !!!!')
 
     return radar
 
@@ -96,10 +95,11 @@ def clutter_mask(
         r = radar.range["data"]
         azi = np.round(radar.azimuth["data"][sl] % 360).astype(int)
         refl = radar.fields[refl_name]["data"][sl].filled(np.NaN)
-
         R, A = np.meshgrid(r, azi)
 
-        pos = (R < max_range) & (refl > refl_threshold)
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            pos = (R < max_range) & (refl > refl_threshold)
 
         rclutter = 1000 * (R[pos] / 1e3).astype(int)
         aziclutter = A[pos]
@@ -108,13 +108,11 @@ def clutter_mask(
         del radar
         return rclutter, aziclutter, zclutter
 
-    with warnings.catch_warnings():
-        warnings.simplefilter('ignore')
-        if use_dask:
-            bag = db.from_sequence(radar_file_list).map(find_clutter_pos)
-            rslt = bag.compute()
-        else:
-            rslt = [find_clutter_pos(d) for d in radar_file_list]
+    if use_dask:
+        bag = db.from_sequence(radar_file_list).map(find_clutter_pos)
+        rslt = bag.compute()
+    else:
+        rslt = [find_clutter_pos(d) for d in radar_file_list]
 
     rslt = [r for r in rslt if r is not None]
     if len(rslt) == 0:
@@ -133,7 +131,7 @@ def clutter_mask(
         zmask[idx, apos, rpos] = refl
     zmask = np.ma.masked_invalid(zmask)
 
-    arr = ((~np.ma.masked_less(cmask.sum(axis=0) / 1.44, freq_threshold).mask) & 
+    arr = ((~np.ma.masked_less(cmask.sum(axis=0) / 1.44, freq_threshold).mask) &
            (zmask.mean(axis=0) > refl_threshold))
 
     if np.sum(arr) == 0:
