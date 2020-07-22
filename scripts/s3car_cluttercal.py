@@ -55,7 +55,7 @@ def driver(infile: str, cmask: str):
 
 
 def gen_cmask(radar_file_list, date, file_prefix=None) -> list:
-    '''
+    """
     Generate the clutter mask for a given day and save the clutter mask as a
     netCDF.
 
@@ -70,25 +70,27 @@ def gen_cmask(radar_file_list, date, file_prefix=None) -> list:
     ========
     outpath: str
         Output directory for the clutter masks.
-    '''
+    """
     if file_prefix is None:
-        file_prefix = f'{RID}_'
-    datestr = date.strftime('%Y%m%d')
+        file_prefix = f"{RID}_"
+    datestr = date.strftime("%Y%m%d")
 
-    outpath = os.path.join(OUTPUT_DATA_PATH, 'cmasks')
+    outpath = os.path.join(OUTPUT_DATA_PATH, "cmasks")
     mkdir(outpath)
-    outpath = os.path.join(outpath, f'{RID}')
+    outpath = os.path.join(outpath, f"{RID}")
     mkdir(outpath)
-    outputfile = os.path.join(outpath, file_prefix + f'{datestr}.nc')
+    outputfile = os.path.join(outpath, file_prefix + f"{datestr}.nc")
 
     if os.path.isfile(outputfile):
-        print('Clutter masks already exists. Doing nothing.')
+        print("Clutter masks already exists. Doing nothing.")
     else:
         try:
-            cmask = cluttercal.clutter_mask(radar_file_list, refl_name=REFL_NAME, refl_threshold=REFL_THLD)
+            cmask = cluttercal.clutter_mask(
+                radar_file_list, refl_name=REFL_NAME, refl_threshold=REFL_THLD
+            )
             cmask.to_netcdf(outputfile)
         except EmptyFieldError:
-            print(f'!!! COULD NOT CREATE CLUTTER MAP FOR {date} !!!')
+            print(f"!!! COULD NOT CREATE CLUTTER MAP FOR {date} !!!")
             pass
 
     return outpath
@@ -114,7 +116,7 @@ def main():
     4/ Processing solar calibration
     5/ Saving output data.
     """
-    prefix = f'{RID}_'
+    prefix = f"{RID}_"
     rid, date = RID, DATE
 
     # Create output directories and check if output file exists
@@ -150,7 +152,9 @@ def main():
 
     # Generate composite mask.
     try:
-        cmask = cluttercal.composite_mask(DTIME, timedelta=7, indir=mask_path, prefix=prefix)
+        cmask = cluttercal.composite_mask(
+            DTIME, timedelta=7, indir=mask_path, prefix=prefix
+        )
     except ValueError:
         cmask = cluttercal.single_mask(DTIME, indir=mask_path, prefix=prefix)
 
@@ -164,8 +168,8 @@ def main():
     else:
         ttmp, rtmp = zip(*rslt)
         rca = np.array(rtmp)
-        dtime = np.array(ttmp, dtype='datetime64')
-        df = pd.DataFrame({'rca': rca}, index=dtime)
+        dtime = np.array(ttmp, dtype="datetime64")
+        df = pd.DataFrame({"rca": rca}, index=dtime)
 
         if len(df) != 0:
             df.to_csv(outfilename, float_format="%g")
@@ -176,7 +180,7 @@ def main():
 
 if __name__ == "__main__":
     VOLS_ROOT_PATH = "/srv/data/s3car-server/vols"
-    REFL_NAME = 'total_power'
+    REFL_NAME = "total_power"
     REFL_THLD = 40  # Clutter Reflectivity threshold.
 
     parser_description = (
