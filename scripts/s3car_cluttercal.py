@@ -54,7 +54,7 @@ def driver(infile: str, cmask: str):
     return dtime, rca
 
 
-def gen_cmask(radar_file_list, date) -> list:
+def gen_cmask(radar_file_list) -> list:
     """
     Generate the clutter mask for a given day and save the clutter mask as a
     netCDF.
@@ -63,14 +63,12 @@ def gen_cmask(radar_file_list, date) -> list:
     ===========
     radar_file_list: list
         List radar files for the given date.
-    date: datetime
-        Date.
 
     Returns:
     ========
     outpath: str
         Output directory for the clutter masks.
-    """    
+    """
     outpath = os.path.join(OUTPUT_DATA_PATH, "cmasks")
     mkdir(outpath)
     outpath = os.path.join(outpath, f"{RID}")
@@ -81,10 +79,12 @@ def gen_cmask(radar_file_list, date) -> list:
         print("Clutter masks already exists. Doing nothing.")
     else:
         try:
-            cmask = cluttercal.clutter_mask(
-                radar_file_list, refl_name=REFL_NAME, refl_threshold=REFL_THLD
-            )
+            cmask = cluttercal.clutter_mask(radar_file_list,
+                                            refl_name=REFL_NAME,
+                                            refl_threshold=REFL_THLD,
+                                            use_dask=False)
             cmask.to_netcdf(outputfile)
+            print(f'Clutter mask created {outputfile}')
         except EmptyFieldError:
             print(f"!!! COULD NOT CREATE CLUTTER MAP FOR {date} !!!")
             pass
@@ -111,7 +111,7 @@ def main():
     3/ Check if input directories exists
     4/ Processing solar calibration
     5/ Saving output data.
-    """    
+    """
     rid, date = RID, DATE
 
     # Create output directories and check if output file exists
@@ -144,7 +144,7 @@ def main():
     print(f"Found {len(flist)} files for radar {RID} for date {DATE}.")
 
     # Generate composite mask.
-    mask_path = gen_cmask(flist, date)    
+    mask_path = gen_cmask(flist)
     try:
         cmask = cluttercal.composite_mask(DTIME, timedelta=7, indir=mask_path, prefix=f"{RID}_")
     except ValueError:
