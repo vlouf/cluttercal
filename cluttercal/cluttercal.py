@@ -67,30 +67,20 @@ def composite_mask(date, timedelta=7, indir="compomask", prefix="cpol_cmask_", f
     return composite
 
 
-def single_mask(date, indir="compomask", prefix="cpol_cmask_"):
+def single_mask(mask_file: str):
     """
     Generate clutter mask.
 
     Parameters:
     -----------
-    date: Timestamp
-        Date of processing
-    indir: str
-        Where clutter mask are stored
-    prefix: str
-        What is the clutter mask file prefix.
+    mask_file: input mask
 
     Returns:
     --------
     mask: ndarray
         Clutter mask
     """
-    file = os.path.join(indir, prefix + "{}.nc".format(date.strftime("%Y%m%d")))
-    if not os.path.isfile(file):
-        file = sorted(glob.glob(os.path.join(indir, '*.nc')))[-1]
-
-    print(f'Using emergency mask {file}')
-    cmask = xr.open_dataset(file).clutter_mask.values
+    cmask = xr.open_dataset(mask_file).clutter_mask.values
     return cmask
 
 

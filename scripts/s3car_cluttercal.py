@@ -148,7 +148,9 @@ def main():
     try:
         cmask = cluttercal.composite_mask(DTIME, timedelta=7, indir=mask_path, prefix=f"{RID}_")
     except ValueError:
-        cmask = cluttercal.single_mask(DTIME, indir=mask_path, prefix=f"{RID}_")
+        # single mask
+        single_mask = os.path.join(mask_path, f"{RID}_{DATE}.nc")
+        cmask = cluttercal.single_mask(single_mask)
 
     arglist = [(f, cmask) for f in flist]
     bag = db.from_sequence(arglist).starmap(driver)
