@@ -28,7 +28,7 @@ import cluttercal
 from cluttercal.cluttermask import EmptyFieldError
 
 
-def check_reflectivity(infile):
+def check_reflectivity(infile: str) -> bool:
     '''
     Check if the Radar file contains the uncorrected reflectivity field.
     '''
@@ -48,7 +48,7 @@ def check_reflectivity(infile):
     return is_good
 
 
-def driver(infile: str, cmask: str):
+def driver(infile: str, cmask: str) -> tuple:
     """
     Buffer function to catch and kill errors about missing Sun hit.
 
@@ -124,44 +124,43 @@ def main():
         return None
     print(f"Found {len(flist)} files for radar {RID} for date {DATE}.")
 
-    if check_reflectivity(flist[0]):
-        # Find clutter and save mask.
-        outpath_cmask = os.path.join(OUTPUT_DATA_PATH, "cmasks")
-        mkdir(outpath_cmask)
-        outpath_cmask = os.path.join(outpath_cmask, f"{RID}")
-        mkdir(outpath_cmask)
-        outputfile_cmask = os.path.join(outpath_cmask, f"{RID}_{DATE}.nc")
-
-        cluttercal.clutter_mask(flist, output=outputfile_cmask, refl_name=REFL_NAME, refl_threshold=REFL_THLD, use_dask=False)
-
-        # Generate composite clutter mask.
-        try:
-            cmask = cluttercal.composite_mask(DTIME, timedelta=7, indir=outpath_cmask, prefix=f"{RID}_")
-        except ValueError:
-            # single mask
-            cmask = cluttercal.single_mask(outputfile_cmask)
-
-        # Processing RCA
-        arglist = [(f, cmask) for f in flist]
-        bag = db.from_sequence(arglist).starmap(driver)
-        rslt = bag.compute()
-        dataframe_list = [r for r in rslt if r is not None]
-        if len(dataframe_list) == 0:
-            print(f"No results for date {date}.")
-            return None
-        else:
-            ttmp, rtmp = zip(*rslt)
-            rca = np.array(rtmp)
-            dtime = np.array(ttmp, dtype="datetime64")
-            df = pd.DataFrame({"rca": rca}, index=dtime)
-
-            if len(df) != 0:
-                df.to_csv(outfilename, float_format="%g")
-                print(f"Results saved in {outfilename}.")
-    else:
+    if not check_reflectivity(flist[0]):
         print(f'Reflectivity field {REFL_NAME} not found in {flist[0]}. Doing nothing.')
         return None
 
+    # Find clutter and save mask.
+    outpath_cmask = os.path.join(OUTPUT_DATA_PATH, "cmasks")
+    mkdir(outpath_cmask)
+    outpath_cmask = os.path.join(outpath_cmask, f"{RID}")
+    mkdir(outpath_cmask)
+    outputfile_cmask = os.path.join(outpath_cmask, f"{RID}_{DATE}.nc")
+
+    cluttercal.clutter_mask(flist, output=outputfile_cmask, refl_name=REFL_NAME, refl_threshold=REFL_THLD, use_dask=False)
+
+    # Generate composite clutter mask.
+    try:
+        cmask = cluttercal.composite_mask(DTIME, timedelta=7, indir=outpath_cmask, prefix=f"{RID}_")
+    except ValueError:
+        # single mask
+        cmask = cluttercal.single_mask(outputfile_cmask)
+
+    # Processing RCA
+    arglist = [(f, cmask) for f in flist]
+    bag = db.from_sequence(arglist).starmap(driver)
+    rslt = bag.compute()
+    dataframe_list = [r for r in rslt if r is not None]
+    if len(dataframe_list) == 0:
+        print(f"No results for date {date}.")
+        return None
+    else:
+        ttmp, rtmp = zip(*rslt)
+        rca = np.array(rtmp)
+        dtime = np.array(ttmp, dtype="datetime64")
+        df = pd.DataFrame({"rca": rca}, index=dtime)
+        if len(df) != 0:
+            df.to_csv(outfilename, float_format="%g")
+            print(f"Results saved in {outfilename}.")
+    
     return None
 
 
