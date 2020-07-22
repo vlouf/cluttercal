@@ -128,7 +128,7 @@ setup(
     #
     # For an analysis of "install_requires" vs pip's requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
-    install_requires=['numpy', 'arm_pyart', 'pandas', 'netCDF4', 'dask', 'crayons'],  # Optional
+    install_requires=['numpy', 'arm_pyart', 'pandas', 'netCDF4', 'dask'],  # Optional
 
     # List additional URLs that are relevant to your project as a dict.
     #
