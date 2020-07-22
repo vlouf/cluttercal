@@ -54,7 +54,7 @@ def driver(infile: str, cmask: str):
     return dtime, rca
 
 
-def gen_cmask(radar_file_list, date, file_prefix=None) -> list:
+def gen_cmask(radar_file_list, date) -> list:
     """
     Generate the clutter mask for a given day and save the clutter mask as a
     netCDF.
@@ -70,16 +70,12 @@ def gen_cmask(radar_file_list, date, file_prefix=None) -> list:
     ========
     outpath: str
         Output directory for the clutter masks.
-    """
-    if file_prefix is None:
-        file_prefix = f"{RID}_"
-    datestr = date.strftime("%Y%m%d")
-
+    """    
     outpath = os.path.join(OUTPUT_DATA_PATH, "cmasks")
     mkdir(outpath)
     outpath = os.path.join(outpath, f"{RID}")
     mkdir(outpath)
-    outputfile = os.path.join(outpath, file_prefix + f"{datestr}.nc")
+    outputfile = os.path.join(outpath, f"{RID}_{DATE}.nc")
 
     if os.path.isfile(outputfile):
         print("Clutter masks already exists. Doing nothing.")
@@ -115,8 +111,7 @@ def main():
     3/ Check if input directories exists
     4/ Processing solar calibration
     5/ Saving output data.
-    """
-    prefix = f"{RID}_"
+    """    
     rid, date = RID, DATE
 
     # Create output directories and check if output file exists
@@ -148,15 +143,12 @@ def main():
         return None
     print(f"Found {len(flist)} files for radar {RID} for date {DATE}.")
 
-    mask_path = gen_cmask(flist, date, file_prefix=prefix)
-
     # Generate composite mask.
+    mask_path = gen_cmask(flist, date)    
     try:
-        cmask = cluttercal.composite_mask(
-            DTIME, timedelta=7, indir=mask_path, prefix=prefix
-        )
+        cmask = cluttercal.composite_mask(DTIME, timedelta=7, indir=mask_path, prefix=f"{RID}_")
     except ValueError:
-        cmask = cluttercal.single_mask(DTIME, indir=mask_path, prefix=prefix)
+        cmask = cluttercal.single_mask(DTIME, indir=mask_path, prefix=f"{RID}_")
 
     arglist = [(f, cmask) for f in flist]
     bag = db.from_sequence(arglist).starmap(driver)
