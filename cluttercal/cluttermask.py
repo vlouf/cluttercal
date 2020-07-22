@@ -56,6 +56,7 @@ def _read_radar(infile, refl_name):
 
 def clutter_mask(
     radar_file_list,
+    output=None,
     refl_name="total_power",
     refl_threshold=50,
     max_range=20e3,
@@ -69,6 +70,8 @@ def clutter_mask(
     ===========
     radar_file_list: str
         List of radar files.
+    output: str
+        If output is defined, will saved the mask, otherwise it will return the mask.
     refl_name: str
         Uncorrected reflectivity field name.
     refl_threshold: float
@@ -157,4 +160,9 @@ def clutter_mask(
     }
 
     del radar
+    if output is not None:
+        dset.to_netcdf(output)
+        print(f'Clutter mask {output} created.')
+        return None
+
     return dset
