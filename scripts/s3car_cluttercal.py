@@ -97,7 +97,9 @@ def main():
     rid, date = RID, DATE
 
     # Create output directories and check if output file exists
-    outpath = os.path.join(OUTPUT_DATA_PATH, str(rid))
+    outpath = os.path.join(OUTPUT_DATA_PATH, "RCA")
+    mkdir(outpath)
+    outpath = os.path.join(outpath, str(rid))
     mkdir(outpath)
     outpath = os.path.join(outpath, DTIME.strftime("%Y"))
     mkdir(outpath)
