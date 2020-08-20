@@ -18,8 +18,10 @@ import glob
 import argparse
 import datetime
 import traceback
+import warnings
 
 # Other libraries.
+import netCDF4
 import numpy as np
 import pandas as pd
 import dask.bag as db
@@ -29,23 +31,31 @@ from cluttercal.cluttermask import EmptyFieldError
 
 
 def check_reflectivity(infile: str) -> bool:
-    '''
-    Check if the Radar file contains the uncorrected reflectivity field.
-    '''
-    is_good = True
-    try:
-        radar = cluttercal.cluttercal._read_radar(infile, refl_name=REFL_NAME)
-    except Exception:
-        traceback.print_exc()
+    """
+    Check for the presence of the Uncorrected Reflectivity fields in the ODIM
+    h5 dataset. By convention the field name is TH.
+
+    Parameter:
+    ==========
+    infile: str
+        Input ODIM H5 file.
+    Returns:
+    ========
+    True/False presence of the uncorrected reflectivity.
+    """
+    with netCDF4.Dataset(infile) as ncid:
+        groups = ncid['/dataset1'].groups.keys()
+        var = []
+        for group in groups:
+            if "data" not in group:
+                continue
+            name = ncid[f'/dataset1/{group}/what'].getncattr('quantity')
+            var.append(name)
+
+    if 'TH' in var:
+        return True
+    else:
         return False
-
-    try:
-        radar.fields[REFL_NAME]
-    except KeyError:
-        is_good = False
-
-    del radar
-    return is_good
 
 
 def driver(infile: str, cmask: str) -> tuple:
@@ -162,7 +172,7 @@ def main():
         if len(df) != 0:
             df.to_csv(outfilename, float_format="%g")
             print(f"Results saved in {outfilename}.")
-    
+
     return None
 
 
@@ -211,4 +221,6 @@ if __name__ == "__main__":
         traceback.print_exc()
         sys.exit()
 
-    main()
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        main()
