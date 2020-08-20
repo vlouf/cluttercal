@@ -5,8 +5,9 @@ title: cluttermask.py
 author: Valentin Louf
 email: valentin.louf@bom.gov.au
 institution: Monash University and Bureau of Meteorology
-date: 12/07/2020
+date: 20/08/2020
 """
+import os
 import gc
 import warnings
 
@@ -42,14 +43,14 @@ def _read_radar(infile, refl_name):
         else:
             radar = pyart.io.read(infile, include_fields=[refl_name])
     except Exception:
-        print(f'!!!! Problem with {infile} !!!!')
+        print(f'Reading error of {infile}.')
         raise
 
     try:
         radar.fields[refl_name]
     except KeyError:
         del radar
-        raise KeyError(f'!!!! Problem with {infile} - No {refl_name} field does not exist. !!!!')
+        raise KeyError(f'Problem with {os.path.basename(infile)}: uncorrected reflectivity not present.')
 
     return radar
 
