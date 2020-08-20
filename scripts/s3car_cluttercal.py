@@ -134,11 +134,13 @@ def main():
     if len(flist) == 0:
         print(f"No file found for radar {RID} at {DATE}.")
         return None
-    print(f"Found {len(flist)} files for radar {RID} for date {DATE}.")
 
-    if not check_reflectivity(flist[0]):
-        print(f'Reflectivity field {REFL_NAME} not found in {flist[0]}. Doing nothing.')
+    goodfiles = [*map(check_reflectivity, flist)]
+    if not any(goodfiles):
+        print(f"The uncorrected reflectivity field is not present for radar {RID}.")
         return None
+    flist = [f for f, g in zip(flist, goodfiles) if g is True]
+    print(f"Found {len(flist)} files with the uncorrected reflectivity for radar {RID} for date {DATE}.")
 
     # Find clutter and save mask.
     outpath_cmask = os.path.join(OUTPUT_DATA_PATH, "cmasks")
