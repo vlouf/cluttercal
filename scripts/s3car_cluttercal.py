@@ -4,7 +4,7 @@ Quality control of Radar calibration monitoring using ground clutter
 @creator: Valentin Louf <valentin.louf@bom.gov.au>
 @project: s3car-server
 @institution: Bureau of Meteorology
-@date: 19/08/2020
+@date: 25/08/2020
 
     check_reflectivity
     driver
@@ -110,9 +110,7 @@ def main():
     outpath = os.path.join(OUTPUT_DATA_PATH, "rca")
     mkdir(outpath)
     outpath = os.path.join(outpath, str(rid))
-    mkdir(outpath)
-    outpath = os.path.join(outpath, DTIME.strftime("%Y"))
-    mkdir(outpath)
+    mkdir(outpath)    
     outfilename = os.path.join(outpath, f"rca.{rid}.{date}.csv")
     if os.path.isfile(outfilename):
         print("Output file already exists. Doing nothing.")
@@ -207,7 +205,7 @@ if __name__ == "__main__":
         "-o",
         "--output-dir",
         dest="output",
-        default="/srv/data/s3car-server/solar/data",
+        default="/srv/data/s3car-server/cluttercal/data",
         type=str,
         help="Directory for output data.",
     )
