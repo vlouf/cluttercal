@@ -4,7 +4,7 @@ National archive.
 
 @creator: Valentin Louf <valentin.louf@bom.gov.au>
 @institution: Monash University and Bureau of Meteorology
-@date: 08/07/2020
+@date: 28/08/2020
 
     buffer
     check_rid
@@ -180,8 +180,6 @@ def savedata(df, date, path):
     path = os.path.join(path, 'rca')
     mkdir(path)
     path = os.path.join(path, RID)
-    mkdir(path)
-    path = os.path.join(path, str(date.year))
     mkdir(path)
 
     outfilename = os.path.join(path, f'rca.{RID}.{datestr}.csv')
