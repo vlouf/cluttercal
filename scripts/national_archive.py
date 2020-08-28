@@ -1,4 +1,4 @@
-'''
+"""
 Radar calibration monitoring using ground clutter. Processing the Australian
 National archive.
 
@@ -14,7 +14,7 @@ National archive.
     remove
     savedata
     main
-'''
+"""
 import gc
 import os
 import sys
@@ -36,7 +36,7 @@ from cluttercal.cluttermask import EmptyFieldError
 
 
 def buffer(infile, cmask):
-    '''
+    """
     Buffer function to catch and kill errors.
 
     Parameters:
@@ -50,9 +50,9 @@ def buffer(infile, cmask):
         Datetime of infile
     rca: float
         95th percentile of the clutter reflectivity.
-    '''
+    """
     try:
-        dtime, rca = cluttercal.extract_clutter(infile, cmask, refl_name='total_power')
+        dtime, rca = cluttercal.extract_clutter(infile, cmask, refl_name="total_power")
     except ValueError:
         return None
     except Exception:
@@ -64,17 +64,17 @@ def buffer(infile, cmask):
 
 
 def check_rid():
-    '''
+    """
     Check if the Radar ID provided exists.
-    '''
-    indir = f'/g/data/rq0/level_1/odim_pvol/{RID}'
+    """
+    indir = f"/g/data/rq0/level_1/odim_pvol/{RID}"
     return os.path.exists(indir)
 
 
 def check_reflectivity(infile):
-    '''
+    """
     Check if the Radar file contains the uncorrected reflectivity field.
-    '''
+    """
     is_good = True
     try:
         radar = cluttercal.cluttercal._read_radar(infile, refl_name=REFL_NAME)
@@ -93,7 +93,7 @@ def check_reflectivity(infile):
 
 
 def extract_zip(inzip, path):
-    '''
+    """
     Extract content of a zipfile inside a given directory.
 
     Parameters:
@@ -107,7 +107,7 @@ def extract_zip(inzip, path):
     ========
     namelist: List
         List of files extracted from  the zip.
-    '''
+    """
     with zipfile.ZipFile(inzip) as zid:
         zid.extractall(path=path)
         namelist = [os.path.join(path, f) for f in zid.namelist()]
@@ -115,7 +115,7 @@ def extract_zip(inzip, path):
 
 
 def get_radar_archive_file(date):
-    '''
+    """
     Return the archive containing the radar file for a given radar ID and a
     given date.
 
@@ -128,8 +128,8 @@ def get_radar_archive_file(date):
     ========
     file: str
         Radar archive if it exists at the given date.
-    '''
-    datestr = date.strftime('%Y%m%d')
+    """
+    datestr = date.strftime("%Y%m%d")
     file = f"/g/data/rq0/level_1/odim_pvol/{RID}/{date.year}/vol/{RID}_{datestr}.pvol.zip"
     if not os.path.exists(file):
         return None
@@ -138,9 +138,9 @@ def get_radar_archive_file(date):
 
 
 def mkdir(path):
-    '''
+    """
     Create the DIRECTORY(ies), if they do not already exist
-    '''
+    """
     try:
         os.mkdir(path)
     except FileExistsError:
@@ -150,9 +150,9 @@ def mkdir(path):
 
 
 def remove(flist):
-    '''
+    """
     Remove file if it exists.
-    '''
+    """
     flist = [f for f in flist if f is not None]
     for f in flist:
         try:
@@ -163,7 +163,7 @@ def remove(flist):
 
 
 def savedata(df, date, path):
-    '''
+    """
     Save the output data into a CSV file compatible with pandas.
 
     Parameters:
@@ -174,24 +174,24 @@ def savedata(df, date, path):
         Date of processing.
     path: str
         Output directory.
-    '''
-    datestr = date.strftime('%Y%m%d')
+    """
+    datestr = date.strftime("%Y%m%d")
 
-    path = os.path.join(path, 'rca')
+    path = os.path.join(path, "rca")
     mkdir(path)
     path = os.path.join(path, RID)
     mkdir(path)
 
-    outfilename = os.path.join(path, f'rca.{RID}.{datestr}.csv')
+    outfilename = os.path.join(path, f"rca.{RID}.{datestr}.csv")
     df.to_csv(outfilename)
-    print(crayons.green(f'Found {len(df)} hits for {datestr}.'))
-    print(crayons.green(f'Results saved in {outfilename}.'))
+    print(crayons.green(f"Found {len(df)} hits for {datestr}."))
+    print(crayons.green(f"Results saved in {outfilename}."))
 
     return None
 
 
 def gen_cmask(radar_file_list, date, file_prefix=None):
-    '''
+    """
     Generate the clutter mask for a given day and save the clutter mask as a
     netCDF.
 
@@ -206,37 +206,39 @@ def gen_cmask(radar_file_list, date, file_prefix=None):
     ========
     outpath: str
         Output directory for the clutter masks.
-    '''
+    """
     if file_prefix is None:
-        file_prefix = f'{RID}_'
-    datestr = date.strftime('%Y%m%d')
+        file_prefix = f"{RID}_"
+    datestr = date.strftime("%Y%m%d")
 
-    outpath = os.path.join(OUTPATH, 'cmasks')
+    outpath = os.path.join(OUTPATH, "cmasks")
     mkdir(outpath)
-    outpath = os.path.join(outpath, f'{RID}')
+    outpath = os.path.join(outpath, f"{RID}")
     mkdir(outpath)
-    outputfile = os.path.join(outpath, file_prefix + f'{datestr}.nc')
+    outputfile = os.path.join(outpath, file_prefix + f"{datestr}.nc")
 
     if os.path.isfile(outputfile):
-        print('Clutter masks already exists. Doing nothing.')
+        print("Clutter masks already exists. Doing nothing.")
     else:
         try:
-            cmask = cluttercal.clutter_mask(radar_file_list,
-                                            refl_name="total_power",
-                                            refl_threshold=REFL_THLD,
-                                            max_range=20e3,
-                                            freq_threshold=50,
-                                            use_dask=True)
+            cmask = cluttercal.clutter_mask(
+                radar_file_list,
+                refl_name="total_power",
+                refl_threshold=REFL_THLD,
+                max_range=20e3,
+                freq_threshold=50,
+                use_dask=True,
+            )
             cmask.to_netcdf(outputfile)
         except EmptyFieldError:
-            print(crayons.red(f'!!! COULD NOT CREATE CLUTTER MAP FOR {date} !!!'))
+            print(crayons.red(f"!!! COULD NOT CREATE CLUTTER MAP FOR {date} !!!"))
             pass
 
     return outpath
 
 
 def main(date_range):
-    '''
+    """
     Loop over dates:
     1/ Unzip archives.
     2/ Generate clutter mask for given date.
@@ -244,19 +246,19 @@ def main(date_range):
     4/ Get the 95th percentile of the clutter reflectivity.
     5/ Save data for the given date.
     6/ Remove unzipped file and go to next iteration.
-    '''
-    prefix = f'{RID}_'
+    """
+    prefix = f"{RID}_"
     for date in date_range:
         # Get zip archive for given radar RID and date.
         zipfile = get_radar_archive_file(date)
         if zipfile is None:
-            print(crayons.yellow(f'No file found for radar {RID} at date {date}.'))
+            print(crayons.yellow(f"No file found for radar {RID} at date {date}."))
             continue
 
         # Unzip data/
         namelist = extract_zip(zipfile, path=ZIPDIR)
         if check_reflectivity(namelist[0]):
-            print(crayons.yellow(f'{len(namelist)} files to process for {date}.'))
+            print(crayons.yellow(f"{len(namelist)} files to process for {date}."))
 
             # Generate clutter mask for the given date.
             outpath = gen_cmask(namelist, date, file_prefix=prefix)
@@ -278,10 +280,10 @@ def main(date_range):
                 if len(rslt) != 0:
                     ttmp, rtmp = zip(*rslt)
                     rca = np.array(rtmp)
-                    dtime = np.array(ttmp, dtype='datetime64')
+                    dtime = np.array(ttmp, dtype="datetime64")
 
                     if len(rca) != 0:
-                        df = pd.DataFrame({'rca': rca}, index=dtime)
+                        df = pd.DataFrame({"rca": rca}, index=dtime)
                         savedata(df, date, path=OUTPATH)
                         saved = True
 
@@ -300,48 +302,23 @@ def main(date_range):
 if __name__ == "__main__":
     parser_description = "Relative Calibration Adjustment (RCA) - Monitoring of clutter radar reflectivity."
     parser = argparse.ArgumentParser(description=parser_description)
+    parser.add_argument("-r", "--rid", dest="rid", type=int, required=True, help="Radar ID number.")
     parser.add_argument(
-        "-r",
-        "--rid",
-        dest="rid",
-        type=int,
-        required=True,
-        help="Radar ID number.")
-    parser.add_argument(
-        "-o",
-        "--output",
-        dest="output",
-        default='/scratch/kl02/vhl548/rca_output/',
-        type=str,
-        help="Output directory")
-    parser.add_argument(
-        '-s',
-        '--start-date',
-        dest='start_date',
-        type=str,
-        help='Starting date.',
-        required=True)
-    parser.add_argument(
-        '-e',
-        '--end-date',
-        dest='end_date',
-        type=str,
-        help='Ending date.',
-        required=True)
+        "-o", "--output", dest="output", default="/scratch/kl02/vhl548/rca_output/", type=str, help="Output directory"
+    )
+    parser.add_argument("-s", "--start-date", dest="start_date", type=str, help="Starting date.", required=True)
+    parser.add_argument("-e", "--end-date", dest="end_date", type=str, help="Ending date.", required=True)
     parser.add_argument(
         "-n",
         "--name-dbz",
         dest="refl_name",
         type=str,
-        default='total_power',
-        help="Radar uncorrected reflectivity name.")
+        default="total_power",
+        help="Radar uncorrected reflectivity name.",
+    )
     parser.add_argument(
-        "-t",
-        "--threshold",
-        dest="refl_thld",
-        type=int,
-        default=45,
-        help="Reflectivity threshold for clutter in dBZ.")
+        "-t", "--threshold", dest="refl_thld", type=int, default=45, help="Reflectivity threshold for clutter in dBZ."
+    )
 
     args = parser.parse_args()
     RID = f"{args.rid:02}"
@@ -350,29 +327,29 @@ if __name__ == "__main__":
     OUTPATH = args.output
     REFL_NAME = args.refl_name
     REFL_THLD = args.refl_thld
-    ZIPDIR = '/scratch/kl02/vhl548/unzipdir/'
+    ZIPDIR = "/scratch/kl02/vhl548/unzipdir/"
 
     mkdir(OUTPATH)
 
     if not check_rid():
-        parser.error('Invalid Radar ID.')
+        parser.error("Invalid Radar ID.")
         sys.exit()
 
     try:
         date_range = pd.date_range(START_DATE, END_DATE)
         if len(date_range) == 0:
-            parser.error('End date older than start date.')
+            parser.error("End date older than start date.")
     except Exception:
-        parser.error('Invalid dates.')
+        parser.error("Invalid dates.")
         sys.exit()
 
-    print(crayons.green(f'RCA processing for radar {RID}.'))
-    print(crayons.green(f'Between {START_DATE} and {END_DATE}.'))
-    print(crayons.green(f'Data will be saved in {OUTPATH}.'))
+    print(crayons.green(f"RCA processing for radar {RID}."))
+    print(crayons.green(f"Between {START_DATE} and {END_DATE}."))
+    print(crayons.green(f"Data will be saved in {OUTPATH}."))
 
     tick = time.time()
     with warnings.catch_warnings():
-        warnings.simplefilter('ignore')
+        warnings.simplefilter("ignore")
         main(date_range)
     tock = time.time()
-    print(crayons.magenta(f'Process finished in {tock - tick:0.6}s.'))
+    print(crayons.magenta(f"Process finished in {tock - tick:0.6}s."))
