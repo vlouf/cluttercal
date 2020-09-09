@@ -21,7 +21,7 @@ setup(
     description="Radar monitoring of calibration using ground clutter reflectivity.",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/vlouf/RCA",
+    url="https://github.com/vlouf/cluttercal",
     author="Valentin Louf",
     author_email="valentin.louf@bom.gov.au",  # Optional
     # For a list of valid classifiers, see https://pypi.org/classifiers/
