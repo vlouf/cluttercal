@@ -4,7 +4,7 @@ National archive.
 
 @creator: Valentin Louf <valentin.louf@bom.gov.au>
 @institution: Monash University and Bureau of Meteorology
-@date: 28/08/2020
+@date: 10/09/2020
 
     buffer
     check_rid
@@ -321,7 +321,7 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
-    RID = f"{args.rid:02}"
+    RID = args.rid
     START_DATE = args.start_date
     END_DATE = args.end_date
     OUTPATH = args.output
