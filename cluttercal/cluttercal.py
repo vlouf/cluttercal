@@ -58,7 +58,7 @@ def composite_mask(date, timedelta=7, indir="compomask", prefix="cpol_cmask_", f
     else:
         cmask = [xr.open_dataset(f).clutter_mask.values for f in flist]
         cmaskarr = np.concatenate(cmask, axis=np.newaxis).reshape((len(flist), 360, 20))
-        compo_freq = cmaskarr.sum(axis=0) / len(flist)
+        compo_freq = np.nansum(cmaskarr, axis=0) / len(flist)
         composite = compo_freq > freq_thrld
         if np.sum(composite) == 0:
             print(f'BAD COMPOSITE FOR {date}')
