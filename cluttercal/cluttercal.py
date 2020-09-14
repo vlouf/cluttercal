@@ -5,7 +5,7 @@ title: rca.py
 author: Valentin Louf
 email: valentin.louf@bom.gov.au
 institution: Monash University and Bureau of Meteorology
-date: 08/07/2020
+date: 14/09/2020
 """
 import gc
 import os
@@ -109,7 +109,10 @@ def extract_clutter(infile, clutter_mask, refl_name="total_power"):
 
     dtime = cftime.num2pydate(radar.time["data"][0], radar.time["units"])
 
-    sl = radar.get_slice(0)
+    elev = radar.elevation['data']
+    lowest_tilt = np.argmin([elev[i][0] for i in radar.iter_slice()])
+    sl = radar.get_slice(lowest_tilt)
+
     r = radar.range["data"]
     azi = radar.azimuth["data"][sl]
     try:

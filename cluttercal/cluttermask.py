@@ -5,7 +5,7 @@ title: cluttermask.py
 author: Valentin Louf
 email: valentin.louf@bom.gov.au
 institution: Monash University and Bureau of Meteorology
-date: 20/08/2020
+date: 14/09/2020
 """
 import os
 import gc
@@ -89,13 +89,15 @@ def clutter_mask(
     dset: xr.Dataset
         Clutter mask.
     """
-
-    def find_clutter_pos(infile):
+    def find_clutter_pos(infile: str):
         try:
             radar = _read_radar(infile, refl_name)
         except Exception:
             return None
-        sl = radar.get_slice(0)
+        elev = radar.elevation['data']        
+        lowest_tilt = np.argmin([elev[i][0] for i in radar.iter_slice()])
+        sl = radar.get_slice(lowest_tilt)
+
         r = radar.range["data"]
         azi = np.round(radar.azimuth["data"][sl] % 360).astype(int)
         refl = radar.fields[refl_name]["data"][sl].filled(np.NaN)
