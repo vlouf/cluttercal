@@ -17,6 +17,7 @@ import numpy as np
 import xarray as xr
 import dask.bag as db
 
+
 class EmptyFieldError(Exception):
     pass
 
@@ -55,49 +56,6 @@ def _read_radar(infile, refl_name):
     return radar
 
 
-def find_clutter_pos(infile: str):
-    """
-    Find high reflectivity pixels in the lowest tilt of the radar scan.
-
-    Parameter:
-    ==========
-    infile: str
-        Input radar file
-
-    Returns:
-    ========
-    rclutter: ndarray
-        Range value of clutter pixels.
-    aziclutter: ndarray
-        Azimuth value of clutter pixels.
-    zclutter: ndarray
-        Reflectivity value of clutter pixels.
-    """
-    try:
-        radar = _read_radar(infile, refl_name)
-    except Exception:
-        return None
-    elev = radar.elevation['data']
-    lowest_tilt = np.argmin([elev[i][0] for i in radar.iter_slice()])
-    sl = radar.get_slice(lowest_tilt)
-
-    r = radar.range["data"]
-    azi = np.round(radar.azimuth["data"][sl] % 360).astype(int)
-    refl = radar.fields[refl_name]["data"][sl].filled(np.NaN)
-    R, A = np.meshgrid(r, azi)
-
-    with warnings.catch_warnings():
-        warnings.simplefilter('ignore')
-        pos = (R < max_range) & (refl > refl_threshold)
-
-    rclutter = 1000 * (R[pos] / 1e3).astype(int)
-    aziclutter = A[pos]
-    zclutter = np.round(2 * refl[pos]) / 2
-
-    del radar
-    return rclutter, aziclutter, zclutter
-
-
 def clutter_mask(
     radar_file_list,
     output=None,
@@ -132,6 +90,48 @@ def clutter_mask(
     dset: xr.Dataset
         Clutter mask.
     """
+    def find_clutter_pos(infile: str):
+        """
+        Find high reflectivity pixels in the lowest tilt of the radar scan.
+
+        Parameter:
+        ==========
+        infile: str
+            Input radar file
+
+        Returns:
+        ========
+        rclutter: ndarray
+            Range value of clutter pixels.
+        aziclutter: ndarray
+            Azimuth value of clutter pixels.
+        zclutter: ndarray
+            Reflectivity value of clutter pixels.
+        """
+        try:
+            radar = _read_radar(infile, refl_name)
+        except Exception:
+            return None
+        elev = radar.elevation['data']
+        lowest_tilt = np.argmin([elev[i][0] for i in radar.iter_slice()])
+        sl = radar.get_slice(lowest_tilt)
+
+        r = radar.range["data"]
+        azi = np.round(radar.azimuth["data"][sl] % 360).astype(int)
+        refl = radar.fields[refl_name]["data"][sl].filled(np.NaN)
+        R, A = np.meshgrid(r, azi)
+
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            pos = (R < max_range) & (refl > refl_threshold)
+
+        rclutter = 1000 * (R[pos] / 1e3).astype(int)
+        aziclutter = A[pos]
+        zclutter = np.round(2 * refl[pos]) / 2
+
+        del radar
+        return rclutter, aziclutter, zclutter
+
     if use_dask:
         bag = db.from_sequence(radar_file_list).map(find_clutter_pos)
         rslt = bag.compute()
