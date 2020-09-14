@@ -141,6 +141,7 @@ def clutter_mask(
     rslt = [r for r in rslt if r is not None]
     if len(rslt) == 0:
         raise EmptyFieldError("No Clutter detected")
+    freq_ratio = 100 / len(rslt)
 
     nr = int(max_range // 1000)
     na = 360
@@ -155,7 +156,7 @@ def clutter_mask(
         zmask[idx, apos, rpos] = refl
     zmask = np.ma.masked_invalid(zmask)
 
-    arr = ((~np.ma.masked_less(cmask.sum(axis=0) / 1.44, freq_threshold).mask) &
+    arr = ((~np.ma.masked_less(freq_ratio * cmask.sum(axis=0), freq_threshold).mask) &
            (zmask.mean(axis=0) > refl_threshold))
 
     if np.sum(arr) == 0:
