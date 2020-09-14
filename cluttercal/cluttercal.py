@@ -61,7 +61,7 @@ def composite_mask(date, timedelta=7, indir="compomask", prefix="cpol_cmask_", f
         compo_freq = np.nansum(cmaskarr, axis=0) / len(flist)
         composite = compo_freq > freq_thrld
         if np.sum(composite) == 0:
-            print(f'BAD COMPOSITE FOR {date}')
+            print(f'Bad composite for {date} - Maximum clutter threshold found of {compo_freq.max()} for a threshold of {freq_thrld}.')
             composite = compo_freq != 0
 
     return composite
