@@ -229,9 +229,12 @@ def gen_cmask(radar_file_list, date, file_prefix=None):
                 freq_threshold=50,
                 use_dask=True,
             )
-            cmask.to_netcdf(outputfile)
-        except EmptyFieldError:
-            print(crayons.red(f"!!! COULD NOT CREATE CLUTTER MAP FOR {date} !!!"))
+            if cmask is None:
+                print(crayons.red(f"!!! COULD NOT CREATE CLUTTER MAP FOR {date} !!!"))
+            else:
+                cmask.to_netcdf(outputfile)
+        except Exception:
+            traceback.print_exc()
             pass
 
     return outpath

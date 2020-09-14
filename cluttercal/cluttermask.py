@@ -155,11 +155,12 @@ def clutter_mask(
         zmask[idx, apos, rpos] = refl
     zmask = np.ma.masked_invalid(zmask)
 
-    arr = ((~np.ma.masked_less(cmask.sum(axis=0) / 1.44), freq_threshold).mask) &
+    arr = ((~np.ma.masked_less(cmask.sum(axis=0) / 1.44, freq_threshold).mask) &
            (zmask.mean(axis=0) > refl_threshold))
 
     if np.sum(arr) == 0:
-        raise EmptyFieldError("No Clutter detected")
+        print("No Clutter detected. Not creating clutter mask.")
+        return None
 
     dset = xr.Dataset(
         {
