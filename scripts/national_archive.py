@@ -4,7 +4,7 @@ National archive.
 
 @creator: Valentin Louf <valentin.louf@bom.gov.au>
 @institution: Monash University and Bureau of Meteorology
-@date: 10/09/2020
+@date: 23/10/2020
 
     buffer
     check_rid
@@ -26,6 +26,8 @@ import datetime
 import warnings
 import traceback
 
+from typing import List
+
 import crayons
 import numpy as np
 import pandas as pd
@@ -35,7 +37,7 @@ import cluttercal
 from cluttercal.cluttermask import EmptyFieldError
 
 
-def buffer(infile, cmask):
+def buffer(infile: str, cmask: str):
     """
     Buffer function to catch and kill errors.
 
@@ -63,7 +65,7 @@ def buffer(infile, cmask):
     return dtime, rca
 
 
-def check_rid():
+def check_rid() -> bool:
     """
     Check if the Radar ID provided exists.
     """
@@ -71,7 +73,7 @@ def check_rid():
     return os.path.exists(indir)
 
 
-def check_reflectivity(infile):
+def check_reflectivity(infile: str) -> bool:
     """
     Check if the Radar file contains the uncorrected reflectivity field.
     """
@@ -92,7 +94,7 @@ def check_reflectivity(infile):
     return is_good
 
 
-def extract_zip(inzip, path):
+def extract_zip(inzip: str, path: str) -> List[str]:
     """
     Extract content of a zipfile inside a given directory.
 
@@ -114,7 +116,7 @@ def extract_zip(inzip, path):
     return namelist
 
 
-def get_radar_archive_file(date):
+def get_radar_archive_file(date) -> str:
     """
     Return the archive containing the radar file for a given radar ID and a
     given date.
@@ -137,7 +139,7 @@ def get_radar_archive_file(date):
     return file
 
 
-def mkdir(path):
+def mkdir(path: str) -> None:
     """
     Create the DIRECTORY(ies), if they do not already exist
     """
@@ -149,7 +151,7 @@ def mkdir(path):
     return None
 
 
-def remove(flist):
+def remove(flist: List[str]) -> None:
     """
     Remove file if it exists.
     """
@@ -162,7 +164,7 @@ def remove(flist):
     return None
 
 
-def savedata(df, date, path):
+def savedata(df, date, path: str) -> None:
     """
     Save the output data into a CSV file compatible with pandas.
 
@@ -190,7 +192,7 @@ def savedata(df, date, path):
     return None
 
 
-def gen_cmask(radar_file_list, date, file_prefix=None):
+def gen_cmask(radar_file_list: List[str], date, file_prefix=None) -> str:
     """
     Generate the clutter mask for a given day and save the clutter mask as a
     netCDF.
@@ -240,7 +242,7 @@ def gen_cmask(radar_file_list, date, file_prefix=None):
     return outpath
 
 
-def main(date_range):
+def main(date_range) -> None:
     """
     Loop over dates:
     1/ Unzip archives.
@@ -307,7 +309,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=parser_description)
     parser.add_argument("-r", "--rid", dest="rid", type=int, required=True, help="Radar ID number.")
     parser.add_argument(
-        "-o", "--output", dest="output", default="/scratch/kl02/vhl548/s3car-server/cluttercal/", type=str, help="Output directory"
+        "-o",
+        "--output",
+        dest="output",
+        default="/scratch/kl02/vhl548/s3car-server/cluttercal/",
+        type=str,
+        help="Output directory",
     )
     parser.add_argument("-s", "--start-date", dest="start_date", type=str, help="Starting date.", required=True)
     parser.add_argument("-e", "--end-date", dest="end_date", type=str, help="Ending date.", required=True)
