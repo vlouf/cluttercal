@@ -7,8 +7,10 @@ National archive.
 @date: 23/10/2020
 
     buffer
+    check_reflectivity
     check_rid
     extract_zip
+    gen_cmask
     get_radar_archive_file
     mkdir
     remove
