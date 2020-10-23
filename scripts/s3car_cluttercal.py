@@ -4,7 +4,7 @@ Quality control of Radar calibration monitoring using ground clutter
 @creator: Valentin Louf <valentin.louf@bom.gov.au>
 @project: s3car-server
 @institution: Bureau of Meteorology
-@date: 25/08/2020
+@date: 23/10/2020
 
     check_reflectivity
     driver
@@ -19,6 +19,8 @@ import argparse
 import datetime
 import traceback
 import warnings
+
+from typing import Tuple
 
 # Other libraries.
 import netCDF4
@@ -58,7 +60,7 @@ def check_reflectivity(infile: str) -> bool:
         return False
 
 
-def driver(infile: str, cmask: str) -> tuple:
+def driver(infile: str, cmask: str) -> Tuple[]:
     """
     Buffer function to catch and kill errors about missing Sun hit.
 
@@ -84,7 +86,7 @@ def driver(infile: str, cmask: str) -> tuple:
     return dtime, rca
 
 
-def mkdir(path: str):
+def mkdir(path: str) -> None:
     """
     Make directory if it does not already exist.
     """
