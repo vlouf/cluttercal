@@ -307,7 +307,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=parser_description)
     parser.add_argument("-r", "--rid", dest="rid", type=int, required=True, help="Radar ID number.")
     parser.add_argument(
-        "-o", "--output", dest="output", default="/scratch/kl02/vhl548/rca_output/", type=str, help="Output directory"
+        "-o", "--output", dest="output", default="/scratch/kl02/vhl548/s3car-server/cluttercal/", type=str, help="Output directory"
     )
     parser.add_argument("-s", "--start-date", dest="start_date", type=str, help="Starting date.", required=True)
     parser.add_argument("-e", "--end-date", dest="end_date", type=str, help="Ending date.", required=True)
