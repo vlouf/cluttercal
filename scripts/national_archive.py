@@ -65,14 +65,6 @@ def buffer(infile: str, cmask: str):
     return dtime, rca
 
 
-def check_rid() -> bool:
-    """
-    Check if the Radar ID provided exists.
-    """
-    indir = f"/g/data/rq0/level_1/odim_pvol/{RID:02}"
-    return os.path.exists(indir)
-
-
 def check_reflectivity(infile: str) -> bool:
     """
     Check if the Radar file contains the uncorrected reflectivity field.
@@ -92,6 +84,14 @@ def check_reflectivity(infile: str) -> bool:
 
     del radar
     return is_good
+
+
+def check_rid() -> bool:
+    """
+    Check if the Radar ID provided exists.
+    """
+    indir = f"/g/data/rq0/level_1/odim_pvol/{RID:02}"
+    return os.path.exists(indir)
 
 
 def extract_zip(inzip: str, path: str) -> List[str]:
@@ -114,6 +114,56 @@ def extract_zip(inzip: str, path: str) -> List[str]:
         zid.extractall(path=path)
         namelist = [os.path.join(path, f) for f in zid.namelist()]
     return namelist
+
+
+def gen_cmask(radar_file_list: List[str], date, file_prefix=None) -> str:
+    """
+    Generate the clutter mask for a given day and save the clutter mask as a
+    netCDF.
+
+    Parameters:
+    ===========
+    radar_file_list: list
+        List radar files for the given date.
+    date: datetime
+        Date.
+
+    Returns:
+    ========
+    outpath: str
+        Output directory for the clutter masks.
+    """
+    if file_prefix is None:
+        file_prefix = f"{RID}_"
+    datestr = date.strftime("%Y%m%d")
+
+    outpath = os.path.join(OUTPATH, "cmasks")
+    mkdir(outpath)
+    outpath = os.path.join(outpath, f"{RID}")
+    mkdir(outpath)
+    outputfile = os.path.join(outpath, file_prefix + f"{datestr}.nc")
+
+    if os.path.isfile(outputfile):
+        print("Clutter masks already exists. Doing nothing.")
+    else:
+        try:
+            cmask = cluttercal.clutter_mask(
+                radar_file_list,
+                refl_name="total_power",
+                refl_threshold=REFL_THLD,
+                max_range=20e3,
+                freq_threshold=50,
+                use_dask=True,
+            )
+            if cmask is None:
+                print(crayons.red(f"!!! COULD NOT CREATE CLUTTER MAP FOR {date} !!!"))
+            else:
+                cmask.to_netcdf(outputfile)
+        except Exception:
+            traceback.print_exc()
+            pass
+
+    return outpath
 
 
 def get_radar_archive_file(date) -> str:
@@ -190,56 +240,6 @@ def savedata(df, date, path: str) -> None:
     print(crayons.green(f"Results saved in {outfilename}."))
 
     return None
-
-
-def gen_cmask(radar_file_list: List[str], date, file_prefix=None) -> str:
-    """
-    Generate the clutter mask for a given day and save the clutter mask as a
-    netCDF.
-
-    Parameters:
-    ===========
-    radar_file_list: list
-        List radar files for the given date.
-    date: datetime
-        Date.
-
-    Returns:
-    ========
-    outpath: str
-        Output directory for the clutter masks.
-    """
-    if file_prefix is None:
-        file_prefix = f"{RID}_"
-    datestr = date.strftime("%Y%m%d")
-
-    outpath = os.path.join(OUTPATH, "cmasks")
-    mkdir(outpath)
-    outpath = os.path.join(outpath, f"{RID}")
-    mkdir(outpath)
-    outputfile = os.path.join(outpath, file_prefix + f"{datestr}.nc")
-
-    if os.path.isfile(outputfile):
-        print("Clutter masks already exists. Doing nothing.")
-    else:
-        try:
-            cmask = cluttercal.clutter_mask(
-                radar_file_list,
-                refl_name="total_power",
-                refl_threshold=REFL_THLD,
-                max_range=20e3,
-                freq_threshold=50,
-                use_dask=True,
-            )
-            if cmask is None:
-                print(crayons.red(f"!!! COULD NOT CREATE CLUTTER MAP FOR {date} !!!"))
-            else:
-                cmask.to_netcdf(outputfile)
-        except Exception:
-            traceback.print_exc()
-            pass
-
-    return outpath
 
 
 def main(date_range) -> None:
