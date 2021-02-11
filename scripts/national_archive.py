@@ -4,7 +4,7 @@ National archive.
 
 @creator: Valentin Louf <valentin.louf@bom.gov.au>
 @institution: Monash University and Bureau of Meteorology
-@date: 11/02/2021
+@date: 12/02/2021
 
     buffer
     check_reflectivity
@@ -53,7 +53,7 @@ def buffer(infile: str, cmask: str):
         95th percentile of the clutter reflectivity.
     """
     try:
-        dtime, rca = cluttercal.extract_clutter(infile, cmask, refl_name="total_power")
+        dtime, rca = cluttercal.extract_clutter(infile, cmask, refl_name=REFL_NAME)
     except ValueError:
         return None
     except Exception:
@@ -70,7 +70,7 @@ def check_reflectivity(infile: str) -> bool:
     """
     is_good = True
     try:
-        radar = cluttercal.cluttercal._read_radar(infile, refl_name=REFL_NAME)
+        radar = cluttercal.cluttercal.read_radar(infile, refl_name=REFL_NAME)
     except Exception:
         traceback.print_exc()
         return False
@@ -148,7 +148,7 @@ def gen_cmask(radar_file_list: List[str], date, file_prefix=None) -> str:
         try:
             cmask = cluttercal.clutter_mask(
                 radar_file_list,
-                refl_name="total_power",
+                refl_name=REFL_NAME,
                 refl_threshold=REFL_THLD,
                 max_range=20e3,
                 freq_threshold=50,
@@ -322,7 +322,7 @@ if __name__ == "__main__":
         "--name-dbz",
         dest="refl_name",
         type=str,
-        default="total_power",
+        default="TH",
         help="Radar uncorrected reflectivity name.",
     )
     parser.add_argument(

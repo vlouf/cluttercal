@@ -43,7 +43,7 @@ def read_radar(infile: str, refl_name: str) -> Tuple[np.ndarray, np.ndarray, np.
             radar = r[0].compute()
             use_pyodim = True
         except Exception:
-            radar = pyart.aux_io.read_odim_h5(infile, include_fields=[refl_name])
+            radar = pyart.aux_io.read_odim_h5(infile, file_field_names=True, include_fields=[refl_name])
     else:
         radar = pyart.io.read(infile, include_fields=[refl_name])
 
@@ -125,7 +125,7 @@ def find_clutter_pos(
 def clutter_mask(
     radar_file_list: List,
     output: str = None,
-    refl_name: str = "total_power",
+    refl_name: str = "TH",
     refl_threshold: float = 50,
     max_range: float = 20e3,
     freq_threshold: float = 50,

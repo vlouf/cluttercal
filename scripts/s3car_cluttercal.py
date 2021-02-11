@@ -4,7 +4,7 @@ Quality control of Radar calibration monitoring using ground clutter
 @creator: Valentin Louf <valentin.louf@bom.gov.au>
 @project: s3car-server
 @institution: Bureau of Meteorology
-@date: 11/02/2021
+@date: 12/02/2021
 
     buffer
     check_reflectivity
@@ -198,7 +198,7 @@ def main():
 
 if __name__ == "__main__":
     VOLS_ROOT_PATH = "/srv/data/s3car-server/vols"
-    REFL_NAME = "total_power"
+    REFL_NAME = "TH"
     REFL_THLD = 40  # Clutter Reflectivity threshold.
 
     parser_description = (

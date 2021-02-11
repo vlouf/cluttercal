@@ -49,7 +49,7 @@ def read_radar(infile: str, refl_name: str) -> Tuple[np.ndarray, np.ndarray, np.
             radar = r[0].compute()
             use_pyodim = True
         except Exception:
-            radar = pyart.aux_io.read_odim_h5(infile, include_fields=[refl_name])
+            radar = pyart.aux_io.read_odim_h5(infile, file_field_names=True, include_fields=[refl_name])
     else:
         radar = pyart.io.read(infile, include_fields=[refl_name])
 
@@ -154,7 +154,7 @@ def single_mask(mask_file: str) -> np.ndarray:
     return cmask
 
 
-def extract_clutter(infile: str, clutter_mask: np.ndarray, refl_name: str = "total_power") -> Tuple[Any, float]:
+def extract_clutter(infile: str, clutter_mask: np.ndarray, refl_name: str = "TH") -> Tuple[Any, float]:
     """
     Extract the clutter and compute the RCA value.
 
