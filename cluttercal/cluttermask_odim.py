@@ -8,7 +8,9 @@ institution: Monash University and Bureau of Meteorology
 date: 11/02/2021
 """
 import os
+import warnings
 import traceback
+
 from typing import Tuple, List
 
 import pyodim
@@ -102,7 +104,9 @@ def find_clutter_pos(
         pass
     R, A = np.meshgrid(r, azi)
 
-    pos = (R < max_range) & (refl > refl_threshold)
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore')
+        pos = (R < max_range) & (refl > refl_threshold)
 
     rclutter = 1000 * (R[pos] / 1e3).astype(int)
     aziclutter = A[pos]
