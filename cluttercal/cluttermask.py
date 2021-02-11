@@ -5,13 +5,11 @@ title: cluttermask.py
 author: Valentin Louf
 email: valentin.louf@bom.gov.au
 institution: Monash University and Bureau of Meteorology
-date: 14/09/2020
+date: 11/02/2021
 """
 import os
-import gc
 import warnings
 
-import dask
 import pyart
 import numpy as np
 import xarray as xr

@@ -5,13 +5,10 @@ title: rca.py
 author: Valentin Louf
 email: valentin.louf@bom.gov.au
 institution: Monash University and Bureau of Meteorology
-date: 14/09/2020
+date: 11/02/2021
 """
-import gc
 import os
-import glob
 
-import pyart
 import cftime
 import numpy as np
 import pandas as pd
