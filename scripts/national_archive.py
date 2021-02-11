@@ -6,6 +6,9 @@ National archive.
 @institution: Monash University and Bureau of Meteorology
 @date: 12/02/2021
 
+.. autosummary::
+    :toctree: generated/
+
     buffer
     check_reflectivity
     check_rid

@@ -6,6 +6,9 @@ Quality control of Radar calibration monitoring using ground clutter
 @institution: Bureau of Meteorology
 @date: 12/02/2021
 
+.. autosummary::
+    :toctree: generated/
+
     buffer
     check_reflectivity
     driver
