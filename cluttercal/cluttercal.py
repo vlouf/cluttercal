@@ -80,7 +80,13 @@ def read_radar(infile: str, refl_name: str) -> Tuple[np.ndarray, np.ndarray, np.
     return r, azi, refl, dtime
 
 
-def composite_mask(date: pd.Timestamp, timedelta: int=7, indir: str="compomask", prefix: str="cpol_cmask_", freq_thrld: float=0.9) -> np.ndarray:
+def composite_mask(
+    date: pd.Timestamp,
+    timedelta: int = 7,
+    indir: str = "compomask",
+    prefix: str = "cpol_cmask_",
+    freq_thrld: float = 0.9,
+) -> np.ndarray:
     """
     Generate composite clutter mask.
 
@@ -121,9 +127,11 @@ def composite_mask(date: pd.Timestamp, timedelta: int=7, indir: str="compomask",
         compo_freq = np.nansum(cmaskarr, axis=0) / len(flist)
         composite = compo_freq > freq_thrld
         if np.sum(composite) == 0:
-            composite = compo_freq > .5
+            composite = compo_freq > 0.5
             if np.sum(composite) == 0:
-                print(f'Bad composite for {date} - Maximum clutter threshold found of {compo_freq.max()} for a threshold of {freq_thrld}.')
+                print(
+                    f"Bad composite for {date} - Maximum clutter threshold found of {compo_freq.max()} for a threshold of {freq_thrld}."
+                )
                 composite = compo_freq != 0
 
     return composite
@@ -146,7 +154,7 @@ def single_mask(mask_file: str) -> np.ndarray:
     return cmask
 
 
-def extract_clutter(infile: str, clutter_mask: np.ndarray, refl_name: str="total_power") -> Tuple[Any, float]:
+def extract_clutter(infile: str, clutter_mask: np.ndarray, refl_name: str = "total_power") -> Tuple[Any, float]:
     """
     Extract the clutter and compute the RCA value.
 
