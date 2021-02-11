@@ -11,35 +11,18 @@ import os
 import warnings
 import traceback
 
-from typing import Tuple, List
+from typing import Tuple, List, Dict
 
+import pyart
 import pyodim
 import numpy as np
 import xarray as xr
 import dask.bag as db
 
 
-def buffer(func):
+def read_radar(infile: str, refl_name: str) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
-    Decorator to catch and kill error message. Almost want to name the function
-    dont_fail.
-    """
-
-    def wrapper(*args, **kwargs):
-        try:
-            rslt = func(*args, **kwargs)
-        except Exception:
-            traceback.print_exc()
-            rslt = None
-        return rslt
-
-    return wrapper
-
-
-@buffer
-def read_radar(infile: str, refl_name: str) -> xr.Dataset:
-    """
-    Read radar data using pyodim.
+    Read radar data using pyodim or pyart depending on the radar format.
 
     Parameters:
     ===========
@@ -53,16 +36,45 @@ def read_radar(infile: str, refl_name: str) -> xr.Dataset:
     radar: xr.Dataset
         Radar dataset, first elevation only.
     """
-    r = pyodim.read_odim(infile)
-    # PyODIM order the sweeps, so first in the list is lowest elevation.
-    radar = r[0].compute()
+    use_pyodim = False
+    if infile.lower().endswith((".h5", ".hdf", ".hdf5")):
+        try:
+            r = pyodim.read_odim(infile)
+            radar = r[0].compute()
+            use_pyodim = True
+        except Exception:
+            radar = pyart.aux_io.read_odim_h5(infile, include_fields=[refl_name])
+    else:
+        radar = pyart.io.read(infile, include_fields=[refl_name])
 
     try:
         _ = radar[refl_name].values
     except KeyError:
         raise KeyError(f"Problem with {os.path.basename(infile)}: uncorrected reflectivity not present.")
 
-    return radar
+    if use_pyodim:
+        r = radar.range.values
+        azi = np.round(radar.azimuth.values % 360).astype(int)
+        refl = radar[refl_name].values
+        try:
+            refl = refl.filled(np.NaN)
+        except Exception:
+            pass
+    else:
+        elev = radar.elevation["data"]
+        lowest_tilt = np.argmin([elev[i][0] for i in radar.iter_slice()])
+        sl = radar.get_slice(lowest_tilt)
+
+        r = radar.range["data"]
+        azi = np.round(radar.azimuth["data"][sl] % 360).astype(int)
+        refl = radar.fields[refl_name]["data"][sl].filled(np.NaN)
+
+    return r, azi, refl
+
+
+def get_metadata(infile: str) -> Dict:
+    attrs = {}
+    return attrs
 
 
 def find_clutter_pos(
@@ -91,17 +103,12 @@ def find_clutter_pos(
     zclutter: ndarray
         Reflectivity value of clutter pixels.
     """
-    radar = read_radar(infile, refl_name)
-    if radar is None:
+    try:
+        r, azi, refl = read_radar(infile, refl_name)
+    except Exception:
+        traceback.print_exc()
         return None
 
-    r = radar.range.values
-    azi = np.round(radar.azimuth.values % 360).astype(int)
-    refl = radar[refl_name].values
-    try:
-        refl = refl.filled(np.NaN)
-    except Exception:
-        pass
     R, A = np.meshgrid(r, azi)
 
     with warnings.catch_warnings():
@@ -195,8 +202,7 @@ def clutter_mask(
         }
     )
 
-    radar = read_radar(radar_file_list[0], refl_name)
-    dset.attrs = radar.attrs
+    dset.attrs = get_metadata(radar_file_list[0])
     dset.attrs["range_max"] = max_range
     dset.range.attrs = {"units": "km", "long_name": "radar_range"}
     dset.azimuth.attrs = {"units": "degrees", "long_name": "radar_azimuth"}
