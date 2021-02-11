@@ -1,5 +1,5 @@
 """
-Generate clutter mask.
+Generate clutter mask using Py-ART.
 
 title: cluttermask.py
 author: Valentin Louf
