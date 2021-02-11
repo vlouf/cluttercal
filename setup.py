@@ -17,7 +17,7 @@ with open(path.join(here, "README.md"), encoding="utf-8") as f:
 
 setup(
     name="cluttercal",
-    version="0.9.9",
+    version="1.0.0",
     description="Radar monitoring of calibration using ground clutter reflectivity.",
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -26,7 +26,7 @@ setup(
     author_email="valentin.louf@bom.gov.au",  # Optional
     # For a list of valid classifiers, see https://pypi.org/classifiers/
     classifiers=[  # Optional
-        "Development Status :: 4 - Beta",
+        "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Science/Research",
         "Topic :: Scientific/Engineering :: Atmospheric Science",
         "License :: OSI Approved :: MIT License",
@@ -36,6 +36,6 @@ setup(
     ],
     keywords="radar weather meteorology calibration",
     packages=find_packages(exclude=["contrib", "docs", "tests"]),
-    install_requires=["numpy", "arm_pyart", "pandas", "netCDF4", "dask", "xarray"],
+    install_requires=["numpy", "arm_pyart", "pandas", "netCDF4", "dask", "xarray", "pyodim"],
     project_urls={"Source": "https://github.com/vlouf/cluttercal/",},
 )
