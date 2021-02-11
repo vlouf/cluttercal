@@ -5,16 +5,71 @@ title: rca.py
 author: Valentin Louf
 email: valentin.louf@bom.gov.au
 institution: Monash University and Bureau of Meteorology
-date: 11/02/2021
+date: 12/02/2021
 """
 import os
+from typing import Tuple, Any
 
+import pyart
 import cftime
+import pyodim
 import numpy as np
 import pandas as pd
 import xarray as xr
 
-from .cluttermask import _read_radar
+
+def read_radar(infile: str, refl_name: str) -> Tuple[np.ndarray, np.ndarray, np.ndarray, Any]:
+    """
+    Read radar data using pyodim or pyart depending on the radar format.
+
+    Parameters:
+    ===========
+    infile: str
+        Input file
+    refl_name: str
+        Uncorrected reflectivity field name.
+
+    Returns:
+    ========
+    radar: xr.Dataset
+        Radar dataset, first elevation only.
+    """
+    use_pyodim = False
+    if infile.lower().endswith((".h5", ".hdf", ".hdf5")):
+        try:
+            r = pyodim.read_odim(infile)
+            radar = r[0].compute()
+            use_pyodim = True
+        except Exception:
+            radar = pyart.aux_io.read_odim_h5(infile, include_fields=[refl_name])
+    else:
+        radar = pyart.io.read(infile, include_fields=[refl_name])
+
+    try:
+        _ = radar[refl_name].values
+    except KeyError:
+        raise KeyError(f"Problem with {os.path.basename(infile)}: uncorrected reflectivity not present.")
+
+    if use_pyodim:
+        r = radar.range.values
+        azi = np.round(radar.azimuth.values % 360).astype(int)
+        dtime = radar.time[0].values
+        refl = radar[refl_name].values        
+        try:
+            refl = refl.filled(np.NaN)
+        except Exception:
+            pass
+    else:
+        elev = radar.elevation["data"]
+        lowest_tilt = np.argmin([elev[i][0] for i in radar.iter_slice()])
+        sl = radar.get_slice(lowest_tilt)
+
+        r = radar.range["data"]
+        azi = np.round(radar.azimuth["data"][sl] % 360).astype(int)
+        refl = radar.fields[refl_name]["data"][sl].filled(np.NaN)
+        dtime = cftime.num2pydate(radar.time["data"][0], radar.time["units"])
+
+    return r, azi, refl, dtime
 
 
 def composite_mask(date, timedelta=7, indir="compomask", prefix="cpol_cmask_", freq_thrld=0.9):
@@ -104,20 +159,8 @@ def extract_clutter(infile, clutter_mask, refl_name="total_power"):
         95th percentile of the clutter reflectivity.
     """
     # Radar data.
-    radar = _read_radar(infile, refl_name)
-
-    dtime = cftime.num2pydate(radar.time["data"][0], radar.time["units"])
-
-    elev = radar.elevation['data']
-    lowest_tilt = np.argmin([elev[i][0] for i in radar.iter_slice()])
-    sl = radar.get_slice(lowest_tilt)
-
-    r = radar.range["data"]
-    azi = radar.azimuth["data"][sl]
-    try:
-        refl = radar.fields[refl_name]["data"][sl][:, r < 20e3].filled(np.NaN)
-    except AttributeError:
-        refl = radar.fields[refl_name]["data"][sl][:, r < 20e3]
+    r, azi, reflectivity, dtime = read_radar(infile, refl_name)
+    refl = reflectivity[:, r < 20e3]
     zclutter = np.zeros_like(refl) + np.NaN
 
     r = r[r < 20e3]
@@ -140,5 +183,4 @@ def extract_clutter(infile, clutter_mask, refl_name="total_power"):
         # Empty array full of NaN.
         raise ValueError("All clutter is NaN.")
 
-    del radar
     return dtime, rca
