@@ -90,6 +90,9 @@ def find_clutter_pos(
         Reflectivity value of clutter pixels.
     """
     radar = read_radar(infile, refl_name)
+    if radar is None:
+        return None
+
     r = radar.range.values
     azi = np.round(radar.azimuth.values % 360).astype(int)
     refl = radar[refl_name].values
