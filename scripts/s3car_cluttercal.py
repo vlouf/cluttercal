@@ -17,11 +17,10 @@ import os
 import sys
 import glob
 import argparse
-import datetime
 import traceback
 import warnings
 
-from typing import Tuple
+from typing import Tuple, Any
 
 # Other libraries.
 import netCDF4
@@ -78,7 +77,7 @@ def check_reflectivity(infile: str) -> bool:
         return False
 
 
-def driver(infile: str, cmask: str) -> Tuple[]:
+def driver(infile: str, cmask: str) -> Tuple[Any, Any]:
     """
     Buffer function to catch and kill errors about missing Sun hit.
 
@@ -89,8 +88,10 @@ def driver(infile: str, cmask: str) -> Tuple[]:
 
     Returns:
     ========
-    rslt: pd.DataFrame
-        Pandas dataframe with the results from the solar calibration code.
+    dtime: np.datetime64
+        Datetime of infile
+    rca: float
+        95th percentile of the clutter reflectivity.
     """
     try:
         dtime, rca = cluttercal.extract_clutter(infile, cmask, refl_name=REFL_NAME)
@@ -130,7 +131,7 @@ def main():
     outpath = os.path.join(OUTPUT_DATA_PATH, "rca")
     mkdir(outpath)
     outpath = os.path.join(outpath, str(rid))
-    mkdir(outpath)    
+    mkdir(outpath)
     outfilename = os.path.join(outpath, f"rca.{rid}.{date}.csv")
     if os.path.isfile(outfilename):
         print("Output file already exists. Doing nothing.")
