@@ -67,21 +67,27 @@ def buffer(infile: str, cmask: str):
 def check_reflectivity(infile: str) -> bool:
     """
     Check if the Radar file contains the uncorrected reflectivity field.
+
+    Parameter:
+    ==========
+    infile: str
+        Input radar file.
+
+    Returns:
+    ========
+    is_good: bool
+        True/False as the REFL_NAME field in data.
     """
     is_good = True
     try:
-        radar = cluttercal.cluttercal.read_radar(infile, refl_name=REFL_NAME)
+        _ = cluttercal.cluttercal.read_radar(infile, refl_name=REFL_NAME)
+    except KeyError:
+        print(f"Uncorrected reflectivity {REFL_NAME} not found in {infile}.")
+        is_good = False
     except Exception:
         traceback.print_exc()
-        return False
-
-    try:
-        radar.fields[REFL_NAME]
-    except KeyError:
-        print(crayons.red(f"{os.path.basename(infile)} does not contain {REFL_NAME} field."))
         is_good = False
 
-    del radar
     return is_good
 
 
