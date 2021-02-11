@@ -9,6 +9,8 @@ date: 11/02/2021
 """
 import os
 import warnings
+import traceback
+from typing import Tuple
 
 import pyart
 import numpy as np
@@ -16,6 +18,24 @@ import xarray as xr
 import dask.bag as db
 
 
+def buffer(func):
+    """
+    Decorator to catch and kill error message. Almost want to name the function
+    dont_fail.
+    """
+
+    def wrapper(*args, **kwargs):
+        try:
+            rslt = func(*args, **kwargs)
+        except Exception:
+            traceback.print_exc()
+            rslt = None
+        return rslt
+
+    return wrapper
+
+
+@buffer
 def _read_radar(infile, refl_name):
     """
     Read input radar file
@@ -48,6 +68,50 @@ def _read_radar(infile, refl_name):
         raise KeyError(f'Problem with {os.path.basename(infile)}: uncorrected reflectivity not present.')
 
     return radar
+
+
+def find_clutter_pos(
+    infile: str, refl_name: str = "TH", refl_threshold: float = 40, max_range: float = 20e3
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """
+    Find high reflectivity pixels in the lowest tilt of the radar scan.
+
+    Parameter:
+    ==========
+    infile: str
+        Input radar file
+
+    Returns:
+    ========
+    rclutter: ndarray
+        Range value of clutter pixels.
+    aziclutter: ndarray
+        Azimuth value of clutter pixels.
+    zclutter: ndarray
+        Reflectivity value of clutter pixels.
+    """
+    radar = _read_radar(infile, refl_name)
+    if radar is None:
+        return None
+    elev = radar.elevation['data']
+    lowest_tilt = np.argmin([elev[i][0] for i in radar.iter_slice()])
+    sl = radar.get_slice(lowest_tilt)
+
+    r = radar.range["data"]
+    azi = np.round(radar.azimuth["data"][sl] % 360).astype(int)
+    refl = radar.fields[refl_name]["data"][sl].filled(np.NaN)
+    R, A = np.meshgrid(r, azi)
+
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore')
+        pos = (R < max_range) & (refl > refl_threshold)
+
+    rclutter = 1000 * (R[pos] / 1e3).astype(int)
+    aziclutter = A[pos]
+    zclutter = np.round(2 * refl[pos]) / 2
+
+    del radar
+    return rclutter, aziclutter, zclutter
 
 
 def clutter_mask(
@@ -84,53 +148,15 @@ def clutter_mask(
     dset: xr.Dataset
         Clutter mask.
     """
-    def find_clutter_pos(infile: str):
-        """
-        Find high reflectivity pixels in the lowest tilt of the radar scan.
-
-        Parameter:
-        ==========
-        infile: str
-            Input radar file
-
-        Returns:
-        ========
-        rclutter: ndarray
-            Range value of clutter pixels.
-        aziclutter: ndarray
-            Azimuth value of clutter pixels.
-        zclutter: ndarray
-            Reflectivity value of clutter pixels.
-        """
-        try:
-            radar = _read_radar(infile, refl_name)
-        except Exception:
-            return None
-        elev = radar.elevation['data']
-        lowest_tilt = np.argmin([elev[i][0] for i in radar.iter_slice()])
-        sl = radar.get_slice(lowest_tilt)
-
-        r = radar.range["data"]
-        azi = np.round(radar.azimuth["data"][sl] % 360).astype(int)
-        refl = radar.fields[refl_name]["data"][sl].filled(np.NaN)
-        R, A = np.meshgrid(r, azi)
-
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore')
-            pos = (R < max_range) & (refl > refl_threshold)
-
-        rclutter = 1000 * (R[pos] / 1e3).astype(int)
-        aziclutter = A[pos]
-        zclutter = np.round(2 * refl[pos]) / 2
-
-        del radar
-        return rclutter, aziclutter, zclutter
+    argslist = []
+    for f in radar_file_list:
+        argslist.append((f, refl_name, refl_threshold, max_range))
 
     if use_dask:
-        bag = db.from_sequence(radar_file_list).map(find_clutter_pos)
+        bag = db.from_sequence(argslist).starmap(find_clutter_pos)
         rslt = bag.compute()
     else:
-        rslt = [find_clutter_pos(d) for d in radar_file_list]
+        rslt = [find_clutter_pos(f, refl_name, refl_threshold, max_range) for f in radar_file_list]
 
     rslt = [r for r in rslt if r is not None]
     if len(rslt) == 0:
