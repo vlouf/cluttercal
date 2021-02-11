@@ -5,7 +5,15 @@ title: cluttermask.py
 author: Valentin Louf
 email: valentin.louf@bom.gov.au
 institution: Monash University and Bureau of Meteorology
-date: 11/02/2021
+date: 12/02/2021
+
+.. autosummary::
+    :toctree: generated/
+
+    read_radar
+    get_metadata
+    find_clutter_pos
+    clutter_mask
 """
 import os
 import warnings
@@ -73,7 +81,34 @@ def read_radar(infile: str, refl_name: str) -> Tuple[np.ndarray, np.ndarray, np.
 
 
 def get_metadata(infile: str) -> Dict:
-    attrs = {}
+    """
+    Extract general metadata from radar file.
+
+    Parameter:
+    ==========
+    infile: str
+        Input file name
+
+    Returns:
+    ========
+    attrs: Dict
+        Metadata dictionnary.
+    """
+    use_pyodim = False
+    if infile.lower().endswith((".h5", ".hdf", ".hdf5")):
+        try:
+            r = pyodim.read_odim(infile)
+            radar = r[0].compute()
+            use_pyodim = True
+        except Exception:
+            radar = pyart.aux_io.read_odim_h5(infile, file_field_names=True)
+    else:
+        radar = pyart.io.read(infile)
+
+    if use_pyodim:
+        attrs = radar.attrs
+    else:
+        attrs = radar.metadata
     return attrs
 
 
