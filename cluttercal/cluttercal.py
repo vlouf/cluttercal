@@ -6,6 +6,14 @@ author: Valentin Louf
 email: valentin.louf@bom.gov.au
 institution: Monash University and Bureau of Meteorology
 date: 12/02/2021
+
+.. autosummary::
+    :toctree: generated/
+
+    read_radar
+    composite_mask
+    single_mask
+    extract_clutter
 """
 import os
 from typing import Tuple, Any
@@ -54,7 +62,7 @@ def read_radar(infile: str, refl_name: str) -> Tuple[np.ndarray, np.ndarray, np.
         r = radar.range.values
         azi = np.round(radar.azimuth.values % 360).astype(int)
         dtime = radar.time[0].values
-        refl = radar[refl_name].values        
+        refl = radar[refl_name].values
         try:
             refl = refl.filled(np.NaN)
         except Exception:
@@ -72,7 +80,7 @@ def read_radar(infile: str, refl_name: str) -> Tuple[np.ndarray, np.ndarray, np.
     return r, azi, refl, dtime
 
 
-def composite_mask(date, timedelta=7, indir="compomask", prefix="cpol_cmask_", freq_thrld=0.9):
+def composite_mask(date: pd.Timestamp, timedelta: int=7, indir: str="compomask", prefix: str="cpol_cmask_", freq_thrld: float=0.9) -> np.ndarray:
     """
     Generate composite clutter mask.
 
@@ -121,7 +129,7 @@ def composite_mask(date, timedelta=7, indir="compomask", prefix="cpol_cmask_", f
     return composite
 
 
-def single_mask(mask_file: str):
+def single_mask(mask_file: str) -> np.ndarray:
     """
     Generate clutter mask.
 
@@ -138,7 +146,7 @@ def single_mask(mask_file: str):
     return cmask
 
 
-def extract_clutter(infile, clutter_mask, refl_name="total_power"):
+def extract_clutter(infile: str, clutter_mask: np.ndarray, refl_name: str="total_power") -> Tuple[Any, float]:
     """
     Extract the clutter and compute the RCA value.
 
