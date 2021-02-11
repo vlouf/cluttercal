@@ -10,7 +10,7 @@ date: 11/02/2021
 import os
 import warnings
 import traceback
-from typing import Tuple
+from typing import Tuple, List
 
 import pyart
 import numpy as np
@@ -53,19 +53,19 @@ def _read_radar(infile, refl_name):
         Radar data.
     """
     try:
-        if infile.lower().endswith(('.h5', '.hdf', '.hdf5')):
+        if infile.lower().endswith((".h5", ".hdf", ".hdf5")):
             radar = pyart.aux_io.read_odim_h5(infile, include_fields=[refl_name])
         else:
             radar = pyart.io.read(infile, include_fields=[refl_name])
     except Exception:
-        print(f'Reading error of {infile}.')
+        print(f"Reading error of {infile}.")
         raise
 
     try:
         radar.fields[refl_name]
     except KeyError:
         del radar
-        raise KeyError(f'Problem with {os.path.basename(infile)}: uncorrected reflectivity not present.')
+        raise KeyError(f"Problem with {os.path.basename(infile)}: uncorrected reflectivity not present.")
 
     return radar
 
@@ -93,7 +93,7 @@ def find_clutter_pos(
     radar = _read_radar(infile, refl_name)
     if radar is None:
         return None
-    elev = radar.elevation['data']
+    elev = radar.elevation["data"]
     lowest_tilt = np.argmin([elev[i][0] for i in radar.iter_slice()])
     sl = radar.get_slice(lowest_tilt)
 
@@ -103,7 +103,7 @@ def find_clutter_pos(
     R, A = np.meshgrid(r, azi)
 
     with warnings.catch_warnings():
-        warnings.simplefilter('ignore')
+        warnings.simplefilter("ignore")
         pos = (R < max_range) & (refl > refl_threshold)
 
     rclutter = 1000 * (R[pos] / 1e3).astype(int)
@@ -115,14 +115,14 @@ def find_clutter_pos(
 
 
 def clutter_mask(
-    radar_file_list,
-    output=None,
-    refl_name="total_power",
-    refl_threshold=50,
-    max_range=20e3,
-    freq_threshold=50,
-    use_dask=True,
-):
+    radar_file_list: List,
+    output: str = None,
+    refl_name: str = "total_power",
+    refl_threshold: float = 50,
+    max_range: float = 20e3,
+    freq_threshold: float = 50,
+    use_dask: bool = True,
+) -> xr.Dataset:
     """
     Extract the clutter and compute the RCA value.
 
@@ -176,8 +176,9 @@ def clutter_mask(
         zmask[idx, apos, rpos] = refl
     zmask = np.ma.masked_invalid(zmask)
 
-    arr = ((~np.ma.masked_less(freq_ratio * cmask.sum(axis=0), freq_threshold).mask) &
-           (zmask.mean(axis=0) > refl_threshold))
+    arr = (~np.ma.masked_less(freq_ratio * cmask.sum(axis=0), freq_threshold).mask) & (
+        zmask.mean(axis=0) > refl_threshold
+    )
 
     if np.sum(arr) == 0:
         print("No Clutter detected. Not creating clutter mask.")
@@ -193,7 +194,7 @@ def clutter_mask(
 
     radar = _read_radar(radar_file_list[0], refl_name)
     dset.attrs = radar.metadata
-    dset.attrs['range_max'] = max_range
+    dset.attrs["range_max"] = max_range
     dset.range.attrs = {"units": "km", "long_name": "radar_range"}
     dset.azimuth.attrs = {"units": "degrees", "long_name": "radar_azimuth"}
     dset.clutter_mask.attrs = {
@@ -205,7 +206,7 @@ def clutter_mask(
     del radar
     if output is not None:
         dset.to_netcdf(output)
-        print(f'Clutter mask {output} created.')
+        print(f"Clutter mask {output} created.")
         return None
 
     return dset
