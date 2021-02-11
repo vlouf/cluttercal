@@ -9,7 +9,7 @@ date: 11/02/2021
 """
 import os
 import traceback
-from typing import Tuple
+from typing import Tuple, List
 
 import pyodim
 import numpy as np
@@ -35,7 +35,7 @@ def buffer(func):
 
 
 @buffer
-def read_radar(infile: str, refl_name: str):    
+def read_radar(infile: str, refl_name: str) -> xr.Dataset:    
     """
     Read radar data using pyodim.
 
@@ -107,14 +107,14 @@ def find_clutter_pos(infile: str, refl_name: str ="TH", refl_threshold: float=40
 
 
 def clutter_mask(
-    radar_file_list,
-    output=None,
-    refl_name="total_power",
-    refl_threshold=50,
-    max_range=20e3,
-    freq_threshold=50,
-    use_dask=True,
-):
+    radar_file_list: List,
+    output: str=None,
+    refl_name: str="total_power",
+    refl_threshold: float=50,
+    max_range: float=20e3,
+    freq_threshold: float=50,
+    use_dask: bool=True,
+) -> xr.Dataset:
     """
     Extract the clutter and compute the RCA value.
 
