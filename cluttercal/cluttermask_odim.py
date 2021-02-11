@@ -17,6 +17,24 @@ import xarray as xr
 import dask.bag as db
 
 
+def buffer(func):
+    """
+    Decorator to catch and kill error message. Almost want to name the function
+    dont_fail.
+    """
+
+    def wrapper(*args, **kwargs):
+        try:
+            rslt = func(*args, **kwargs)
+        except Exception:
+            traceback.print_exc()
+            rslt = None
+        return rslt
+
+    return wrapper
+
+
+@buffer
 def read_radar(infile: str, refl_name: str):    
     r = pyodim.read_odim(infile)
     # PyODIM order the sweeps, so first in the list is lowest elevation.
