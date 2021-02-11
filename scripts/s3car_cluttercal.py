@@ -4,8 +4,9 @@ Quality control of Radar calibration monitoring using ground clutter
 @creator: Valentin Louf <valentin.louf@bom.gov.au>
 @project: s3car-server
 @institution: Bureau of Meteorology
-@date: 23/10/2020
+@date: 11/02/2021
 
+    buffer
     check_reflectivity
     driver
     mkdir
@@ -32,6 +33,23 @@ import cluttercal
 from cluttercal.cluttermask import EmptyFieldError
 
 
+def buffer(func):
+    """
+    Decorator to catch and kill error message.
+    """
+
+    def wrapper(*args, **kwargs):
+        try:
+            rslt = func(*args, **kwargs)
+        except Exception:
+            traceback.print_exc()
+            rslt = None
+        return rslt
+
+    return wrapper
+
+
+@buffer
 def check_reflectivity(infile: str) -> bool:
     """
     Check for the presence of the Uncorrected Reflectivity fields in the ODIM
