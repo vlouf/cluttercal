@@ -36,6 +36,21 @@ def buffer(func):
 
 @buffer
 def read_radar(infile: str, refl_name: str):    
+    """
+    Read radar data using pyodim.
+
+    Parameters:
+    ===========
+    infile: str
+        Input file
+    refl_name: str
+        Uncorrected reflectivity field name.
+
+    Returns:
+    ========
+    radar: xr.Dataset
+        Radar dataset, first elevation only.
+    """
     r = pyodim.read_odim(infile)
     # PyODIM order the sweeps, so first in the list is lowest elevation.
     radar = r[0].compute()
