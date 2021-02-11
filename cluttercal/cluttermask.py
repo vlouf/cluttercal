@@ -16,10 +16,6 @@ import xarray as xr
 import dask.bag as db
 
 
-class EmptyFieldError(Exception):
-    pass
-
-
 def _read_radar(infile, refl_name):
     """
     Read input radar file
@@ -138,7 +134,7 @@ def clutter_mask(
 
     rslt = [r for r in rslt if r is not None]
     if len(rslt) == 0:
-        raise EmptyFieldError("No Clutter detected")
+        raise ValueError("No Clutter detected")
     freq_ratio = 100 / len(rslt)
 
     nr = int(max_range // 1000)

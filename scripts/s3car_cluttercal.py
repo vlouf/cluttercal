@@ -29,7 +29,6 @@ import pandas as pd
 import dask.bag as db
 
 import cluttercal
-from cluttercal.cluttermask import EmptyFieldError
 
 
 def buffer(func):

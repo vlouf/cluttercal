@@ -4,7 +4,7 @@ National archive.
 
 @creator: Valentin Louf <valentin.louf@bom.gov.au>
 @institution: Monash University and Bureau of Meteorology
-@date: 23/10/2020
+@date: 11/02/2021
 
     buffer
     check_reflectivity
@@ -20,11 +20,9 @@ National archive.
 import gc
 import os
 import sys
-import glob
 import time
 import zipfile
 import argparse
-import datetime
 import warnings
 import traceback
 
@@ -36,7 +34,6 @@ import pandas as pd
 import dask.bag as db
 
 import cluttercal
-from cluttercal.cluttermask import EmptyFieldError
 
 
 def buffer(infile: str, cmask: str):
