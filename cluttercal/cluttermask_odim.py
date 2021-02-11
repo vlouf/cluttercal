@@ -35,7 +35,7 @@ def buffer(func):
 
 
 @buffer
-def read_radar(infile: str, refl_name: str) -> xr.Dataset:    
+def read_radar(infile: str, refl_name: str) -> xr.Dataset:
     """
     Read radar data using pyodim.
 
@@ -54,16 +54,18 @@ def read_radar(infile: str, refl_name: str) -> xr.Dataset:
     r = pyodim.read_odim(infile)
     # PyODIM order the sweeps, so first in the list is lowest elevation.
     radar = r[0].compute()
-    
+
     try:
         _ = radar[refl_name].values
-    except KeyError:        
-        raise KeyError(f'Problem with {os.path.basename(infile)}: uncorrected reflectivity not present.')
-        
+    except KeyError:
+        raise KeyError(f"Problem with {os.path.basename(infile)}: uncorrected reflectivity not present.")
+
     return radar
 
 
-def find_clutter_pos(infile: str, refl_name: str ="TH", refl_threshold: float=40, max_range: float=20e3) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+def find_clutter_pos(
+    infile: str, refl_name: str = "TH", refl_threshold: float = 40, max_range: float = 20e3
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     Find high reflectivity pixels in the lowest tilt of the radar scan.
 
@@ -86,7 +88,7 @@ def find_clutter_pos(infile: str, refl_name: str ="TH", refl_threshold: float=40
         Azimuth value of clutter pixels.
     zclutter: ndarray
         Reflectivity value of clutter pixels.
-    """    
+    """
     radar = read_radar(infile, refl_name)
     r = radar.range.values
     azi = np.round(radar.azimuth.values % 360).astype(int)
@@ -108,12 +110,12 @@ def find_clutter_pos(infile: str, refl_name: str ="TH", refl_threshold: float=40
 
 def clutter_mask(
     radar_file_list: List,
-    output: str=None,
-    refl_name: str="total_power",
-    refl_threshold: float=50,
-    max_range: float=20e3,
-    freq_threshold: float=50,
-    use_dask: bool=True,
+    output: str = None,
+    refl_name: str = "total_power",
+    refl_threshold: float = 50,
+    max_range: float = 20e3,
+    freq_threshold: float = 50,
+    use_dask: bool = True,
 ) -> xr.Dataset:
     """
     Extract the clutter and compute the RCA value.
@@ -143,13 +145,13 @@ def clutter_mask(
     argslist = []
     for f in radar_file_list:
         argslist.append((f, refl_name, refl_threshold, max_range))
-        
+
     if use_dask:
         bag = db.from_sequence(argslist).starmap(find_clutter_pos)
         rslt = bag.compute()
     else:
         rslt = [find_clutter_pos(d) for d in radar_file_list]
-        
+
     rslt = [r for r in rslt if r is not None]
     if len(rslt) == 0:
         raise ValueError("No Clutter detected")
@@ -169,8 +171,9 @@ def clutter_mask(
     zmask = np.ma.masked_invalid(zmask)
 
     arr = np.zeros((na, nr), dtype=np.int16)
-    pos = ((~np.ma.masked_less(freq_ratio * cmask.sum(axis=0), freq_threshold).mask) &
-           (zmask.mean(axis=0) > refl_threshold))
+    pos = (~np.ma.masked_less(freq_ratio * cmask.sum(axis=0), freq_threshold).mask) & (
+        zmask.mean(axis=0) > refl_threshold
+    )
     arr[pos] = 1
 
     if np.sum(arr) == 0:
@@ -187,7 +190,7 @@ def clutter_mask(
 
     radar = read_radar(radar_file_list[0], refl_name)
     dset.attrs = radar.attrs
-    dset.attrs['range_max'] = max_range
+    dset.attrs["range_max"] = max_range
     dset.range.attrs = {"units": "km", "long_name": "radar_range"}
     dset.azimuth.attrs = {"units": "degrees", "long_name": "radar_azimuth"}
     dset.clutter_mask.attrs = {
@@ -195,10 +198,10 @@ def clutter_mask(
         "long_name": "clutter_mask",
         "description": "Clutter position in a coarse polar grid.",
     }
-    
+
     if output is not None:
         dset.to_netcdf(output)
-        print(f'Clutter mask {output} created.')
+        print(f"Clutter mask {output} created.")
         return None
 
     return dset
