@@ -121,7 +121,7 @@ def extract_zip(inzip: str, path: str) -> List[str]:
     return namelist
 
 
-def gen_cmask(radar_file_list: List[str], date, file_prefix=None) -> str:
+def gen_cmask(radar_file_list: List[str], outputfile: str) -> None:
     """
     Generate the clutter mask for a given day and save the clutter mask as a
     netCDF.
@@ -130,45 +130,37 @@ def gen_cmask(radar_file_list: List[str], date, file_prefix=None) -> str:
     ===========
     radar_file_list: list
         List radar files for the given date.
-    date: datetime
-        Date.
+    outputfile: str
+        Output file name.
 
     Returns:
     ========
     outpath: str
         Output directory for the clutter masks.
     """
-    if file_prefix is None:
-        file_prefix = f"{RID}_"
-    datestr = date.strftime("%Y%m%d")
-
-    outpath = os.path.join(OUTPATH, "cmasks")
-    mkdir(outpath)
-    outpath = os.path.join(outpath, f"{RID}")
-    mkdir(outpath)
-    outputfile = os.path.join(outpath, file_prefix + f"{datestr}.nc")
-
     if os.path.isfile(outputfile):
         print("Clutter masks already exists. Doing nothing.")
-    else:
-        try:
-            cmask = cluttercal.clutter_mask(
-                radar_file_list,
-                refl_name=REFL_NAME,
-                refl_threshold=REFL_THLD,
-                max_range=20e3,
-                freq_threshold=50,
-                use_dask=True,
-            )
-            if cmask is None:
-                print(crayons.red(f"!!! COULD NOT CREATE CLUTTER MAP FOR {date} !!!"))
-            else:
-                cmask.to_netcdf(outputfile)
-        except Exception:
-            traceback.print_exc()
-            pass
+        return None
 
-    return outpath
+    try:
+        cmask = cluttercal.clutter_mask(
+            radar_file_list,
+            refl_name=REFL_NAME,
+            refl_threshold=REFL_THLD,
+            max_range=20e3,
+            freq_threshold=50,
+            use_dask=True,
+        )
+    except Exception:
+        traceback.print_exc()
+        return None
+
+    if cmask is None:
+        raise ValueError(f"!!! COULD NOT CREATE CLUTTER MAP FOR!!!")
+    else:
+        cmask.to_netcdf(outputfile)
+
+    return None
 
 
 def get_radar_archive_file(date) -> str:
@@ -256,6 +248,11 @@ def main(date_range) -> None:
     4/ Get the 95th percentile of the clutter reflectivity.
     5/ Save data for the given date.
     6/ Remove unzipped file and go to next iteration.
+
+    Parameters:
+    ===========
+    date_range: Iter
+        List of dates to process
     """
     prefix = f"{RID}_"
     for date in date_range:
@@ -271,7 +268,16 @@ def main(date_range) -> None:
             print(crayons.yellow(f"{len(namelist)} files to process for {date}."))
 
             # Generate clutter mask for the given date.
-            outpath = gen_cmask(namelist, date, file_prefix=prefix)
+            datestr = date.strftime("%Y%m%d")
+            outpath = os.path.join(OUTPATH, "cmasks")
+            mkdir(outpath)
+            outpath = os.path.join(outpath, f"{RID}")
+            mkdir(outpath)
+            output_maskfile = os.path.join(outpath, prefix + f"{datestr}.nc")
+            try:
+                gen_cmask(namelist, output_maskfile)
+            except ValueError:
+                pass
 
             # Generate composite mask.
             try:
@@ -312,7 +318,23 @@ def main(date_range) -> None:
 if __name__ == "__main__":
     parser_description = "Relative Calibration Adjustment (RCA) - Monitoring of clutter radar reflectivity."
     parser = argparse.ArgumentParser(description=parser_description)
-    parser.add_argument("-r", "--rid", dest="rid", type=int, required=True, help="Radar ID number.")
+    parser.add_argument(
+        "-s", "--start-date", dest="start_date", type=str, help="Left bound for generating dates.", required=True
+    )
+    parser.add_argument(
+        "-e", "--end-date", dest="end_date", type=str, help="Right bound for generating dates.", required=True
+    )
+    parser.add_argument(
+        "-n", "--name-dbz", dest="refl_name", type=str, default="TH", help="Radar uncorrected reflectivity name.",
+    )
+    parser.add_argument(
+        "-r",
+        "--rid",
+        dest="rid",
+        type=int,
+        required=True,
+        help="The individual radar Rapic ID number for the Australian weather radar network.",
+    )
     parser.add_argument(
         "-o",
         "--output",
@@ -321,18 +343,13 @@ if __name__ == "__main__":
         type=str,
         help="Output directory",
     )
-    parser.add_argument("-s", "--start-date", dest="start_date", type=str, help="Starting date.", required=True)
-    parser.add_argument("-e", "--end-date", dest="end_date", type=str, help="Ending date.", required=True)
     parser.add_argument(
-        "-n",
-        "--name-dbz",
-        dest="refl_name",
-        type=str,
-        default="TH",
-        help="Radar uncorrected reflectivity name.",
-    )
-    parser.add_argument(
-        "-t", "--threshold", dest="refl_thld", type=int, default=45, help="Reflectivity threshold for clutter in dBZ."
+        "-t",
+        "--threshold",
+        dest="refl_thld",
+        type=int,
+        default=45,
+        help="Clutter detection minimal reflectivity threshold in dBZ.",
     )
 
     args = parser.parse_args()
