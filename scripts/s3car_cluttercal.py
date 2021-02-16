@@ -4,7 +4,7 @@ Quality control of Radar calibration monitoring using ground clutter
 @creator: Valentin Louf <valentin.louf@bom.gov.au>
 @project: s3car-server
 @institution: Bureau of Meteorology
-@date: 12/02/2021
+@date: 16/02/2021
 
 .. autosummary::
     :toctree: generated/
@@ -42,9 +42,12 @@ def buffer(func):
     def wrapper(*args, **kwargs):
         try:
             rslt = func(*args, **kwargs)
+        except OSError:
+            print(f"File is invalid: {args}")
+            return None
         except Exception:
             traceback.print_exc()
-            rslt = None
+            return None
         return rslt
 
     return wrapper
@@ -64,6 +67,10 @@ def check_reflectivity(infile: str) -> bool:
     ========
     True/False presence of the uncorrected reflectivity.
     """
+    if os.stat(infile).st_size == 0:
+        print(f"{infile} is empty!")
+        return False
+
     with netCDF4.Dataset(infile) as ncid:
         groups = ncid['/dataset1'].groups.keys()
         var = []
@@ -118,7 +125,7 @@ def mkdir(path: str) -> None:
     return None
 
 
-def main():
+def main() -> None:
     """
     Structure:
     1/ Create output directories (if does not exists)
