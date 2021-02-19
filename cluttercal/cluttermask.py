@@ -109,6 +109,12 @@ def get_metadata(infile: str) -> Dict:
         attrs = radar.attrs
     else:
         attrs = radar.metadata
+
+    try:
+        for k, v in attrs.items():
+            attrs[k] = str(v)
+    except Exception:
+        return None
     return attrs
 
 
