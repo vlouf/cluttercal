@@ -177,11 +177,11 @@ def main() -> None:
 
     input_dir = os.path.join(input_dir, "*.h5")
     flist = sorted(glob.glob(input_dir))
+    flist = [f for f in flist if check_file(f)]  # Check if file is empty.
     if len(flist) == 0:
-        print(f"No file found for radar {RID} at {DATE}.")
+        print(f"No file found (or all files empty) for radar {RID} at {DATE}.")
         return None
 
-    flist = [f for f in flist if check_file(f)]  # Check if file is empty.
     goodfiles = [*map(check_reflectivity, flist)]
     if not any(goodfiles):
         print(f"The uncorrected reflectivity field is not present for radar {RID}.")
