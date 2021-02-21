@@ -4,12 +4,13 @@ Quality control of Radar calibration monitoring using ground clutter
 @creator: Valentin Louf <valentin.louf@bom.gov.au>
 @project: s3car-server
 @institution: Bureau of Meteorology
-@date: 16/02/2021
+@date: 22/02/2021
 
 .. autosummary::
     :toctree: generated/
 
     buffer
+    check_file
     check_reflectivity
     driver
     mkdir
@@ -54,6 +55,26 @@ def buffer(func):
 
 
 @buffer
+def check_file(infile: str) -> bool:
+    """
+    Check if file is empty.
+
+    Parameter:
+    ==========
+    infile: str
+        Input ODIM H5 file.
+
+    Returns:
+    ========
+        True/False if file is not empty/empty.
+    """
+    if os.stat(infile).st_size == 0:
+        return False
+    else:
+        return True
+
+
+@buffer
 def check_reflectivity(infile: str) -> bool:
     """
     Check for the presence of the Uncorrected Reflectivity fields in the ODIM
@@ -63,14 +84,11 @@ def check_reflectivity(infile: str) -> bool:
     ==========
     infile: str
         Input ODIM H5 file.
+
     Returns:
     ========
-    True/False presence of the uncorrected reflectivity.
+        True/False presence of the uncorrected reflectivity.
     """
-    if os.stat(infile).st_size == 0:
-        print(f"{infile} is empty!")
-        return False
-
     with netCDF4.Dataset(infile) as ncid:
         groups = ncid['/dataset1'].groups.keys()
         var = []
@@ -163,6 +181,7 @@ def main() -> None:
         print(f"No file found for radar {RID} at {DATE}.")
         return None
 
+    flist = [f for f in flist if check_file(f)]  # Check if file is empty.
     goodfiles = [*map(check_reflectivity, flist)]
     if not any(goodfiles):
         print(f"The uncorrected reflectivity field is not present for radar {RID}.")
