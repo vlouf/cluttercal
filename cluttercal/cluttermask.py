@@ -58,7 +58,8 @@ def read_radar(infile: str, refl_name: str) -> Tuple[np.ndarray, np.ndarray, np.
     try:
         _ = radar[refl_name].values
     except KeyError:
-        raise KeyError(f"Problem with {os.path.basename(infile)}: uncorrected reflectivity not present.")
+#         raise KeyError(f"Problem with {os.path.basename(infile)}: uncorrected reflectivity not present.")
+        refl_name = "DBZH"
 
     if use_pyodim:
         r = radar.range.values

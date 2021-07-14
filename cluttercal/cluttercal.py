@@ -175,7 +175,10 @@ def extract_clutter(infile: str, clutter_mask: np.ndarray, refl_name: str = "TH"
         95th percentile of the clutter reflectivity.
     """
     # Radar data.
-    r, azi, reflectivity, dtime = read_radar(infile, refl_name)
+    try:
+        r, azi, reflectivity, dtime = read_radar(infile, refl_name)
+    except KeyError:
+        r, azi, reflectivity, dtime = read_radar(infile, DBZH)
     refl = reflectivity[:, r < 20e3]
     zclutter = np.zeros_like(refl) + np.NaN
 
