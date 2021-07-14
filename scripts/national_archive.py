@@ -38,7 +38,7 @@ import dask.bag as db
 import cluttercal
 
 
-def buffer(infile: str, cmask: str, refl_name:str) -> Tuple[Any, float]:
+def buffer(infile: str, cmask: str, refl_name: str) -> Tuple[Any, float]:
     """
     Buffer function to catch and kill errors.
 
@@ -123,7 +123,7 @@ def extract_zip(inzip: str, path: str) -> List[str]:
     return namelist
 
 
-def gen_cmask(radar_file_list: List[str], outputfile: str, refl_name:str) -> None:
+def gen_cmask(radar_file_list: List[str], outputfile: str, refl_name: str) -> None:
     """
     Generate the clutter mask for a given day and save the clutter mask as a
     netCDF.

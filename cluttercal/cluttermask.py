@@ -153,7 +153,7 @@ def find_clutter_pos(
     R, A = np.meshgrid(r, azi)
 
     with warnings.catch_warnings():
-        warnings.simplefilter('ignore')
+        warnings.simplefilter("ignore")
         pos = (R < max_range) & (refl > refl_threshold)
 
     rclutter = 1000 * (R[pos] / 1e3).astype(int)
