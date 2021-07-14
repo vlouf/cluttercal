@@ -5,7 +5,7 @@ title: rca.py
 author: Valentin Louf
 email: valentin.louf@bom.gov.au
 institution: Monash University and Bureau of Meteorology
-date: 12/02/2021
+date: 14/07/2021
 
 .. autosummary::
     :toctree: generated/
@@ -175,10 +175,7 @@ def extract_clutter(infile: str, clutter_mask: np.ndarray, refl_name: str = "TH"
         95th percentile of the clutter reflectivity.
     """
     # Radar data.
-    try:
-        r, azi, reflectivity, dtime = read_radar(infile, refl_name)
-    except KeyError:
-        r, azi, reflectivity, dtime = read_radar(infile, DBZH)
+    r, azi, reflectivity, dtime = read_radar(infile, refl_name)
     refl = reflectivity[:, r < 20e3]
     zclutter = np.zeros_like(refl) + np.NaN
 

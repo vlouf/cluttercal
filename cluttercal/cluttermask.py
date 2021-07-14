@@ -5,7 +5,7 @@ title: cluttermask.py
 author: Valentin Louf
 email: valentin.louf@bom.gov.au
 institution: Monash University and Bureau of Meteorology
-date: 12/02/2021
+date: 14/07/2021
 
 .. autosummary::
     :toctree: generated/
@@ -58,8 +58,7 @@ def read_radar(infile: str, refl_name: str) -> Tuple[np.ndarray, np.ndarray, np.
     try:
         _ = radar[refl_name].values
     except KeyError:
-#         raise KeyError(f"Problem with {os.path.basename(infile)}: uncorrected reflectivity not present.")
-        refl_name = "DBZH"
+        raise KeyError(f"Problem with {os.path.basename(infile)}: uncorrected reflectivity not present.")
 
     if use_pyodim:
         r = radar.range.values
