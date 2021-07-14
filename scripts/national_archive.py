@@ -4,7 +4,7 @@ National archive.
 
 @creator: Valentin Louf <valentin.louf@bom.gov.au>
 @institution: Monash University and Bureau of Meteorology
-@date: 12/02/2021
+@date: 14/07/2021
 
 .. autosummary::
     :toctree: generated/
@@ -29,7 +29,7 @@ import argparse
 import warnings
 import traceback
 
-from typing import List
+from typing import List, Tuple, Any
 
 import crayons
 import numpy as np
@@ -39,7 +39,7 @@ import dask.bag as db
 import cluttercal
 
 
-def buffer(infile: str, cmask: str):
+def buffer(infile: str, cmask: str, refl_name:str) -> Tuple[Any, float]:
     """
     Buffer function to catch and kill errors.
 
@@ -56,7 +56,7 @@ def buffer(infile: str, cmask: str):
         95th percentile of the clutter reflectivity.
     """
     try:
-        dtime, rca = cluttercal.extract_clutter(infile, cmask, refl_name=REFL_NAME)
+        dtime, rca = cluttercal.extract_clutter(infile, cmask, refl_name=refl_name)
     except ValueError:
         return None
     except Exception:
@@ -67,7 +67,7 @@ def buffer(infile: str, cmask: str):
     return dtime, rca
 
 
-def check_reflectivity(infile: str) -> bool:
+def check_reflectivity(infile: str, refl_name: str) -> bool:
     """
     Check if the Radar file contains the uncorrected reflectivity field.
 
@@ -83,9 +83,9 @@ def check_reflectivity(infile: str) -> bool:
     """
     is_good = True
     try:
-        _ = cluttercal.cluttercal.read_radar(infile, refl_name=REFL_NAME)
+        _ = cluttercal.cluttercal.read_radar(infile, refl_name=refl_name)
     except KeyError:
-        print(f"Uncorrected reflectivity {REFL_NAME} not found in {infile}.")
+        print(f"Uncorrected reflectivity {refl_name} not found in {infile}.")
         is_good = False
     except Exception:
         traceback.print_exc()
@@ -124,7 +124,7 @@ def extract_zip(inzip: str, path: str) -> List[str]:
     return namelist
 
 
-def gen_cmask(radar_file_list: List[str], outputfile: str) -> None:
+def gen_cmask(radar_file_list: List[str], outputfile: str, refl_name:str) -> None:
     """
     Generate the clutter mask for a given day and save the clutter mask as a
     netCDF.
@@ -148,7 +148,7 @@ def gen_cmask(radar_file_list: List[str], outputfile: str) -> None:
     try:
         cmask = cluttercal.clutter_mask(
             radar_file_list,
-            refl_name=REFL_NAME,
+            refl_name=refl_name,
             refl_threshold=REFL_THLD,
             max_range=20e3,
             freq_threshold=50,
@@ -267,49 +267,57 @@ def main(date_range) -> None:
 
         # Unzip data/
         namelist = extract_zip(zipfile, path=ZIPDIR)
-        if check_reflectivity(namelist[0]):
-            print(crayons.yellow(f"{len(namelist)} files to process for {date}."))
+        refl_name = None
+        for name in REFL_NAME:
+            if check_reflectivity(namelist[0], refl_name=name):
+                refl_name = name
+                break
 
-            # Generate clutter mask for the given date.
-            datestr = date.strftime("%Y%m%d")
-            outpath = os.path.join(OUTPATH, "cmasks")
-            mkdir(outpath)
-            outpath = os.path.join(outpath, f"{RID}")
-            mkdir(outpath)
-            output_maskfile = os.path.join(outpath, prefix + f"{datestr}.nc")
-            try:
-                gen_cmask(namelist, output_maskfile)
-            except ValueError:
-                pass
+        if refl_name is None:
+            raise ValueError("Given reflectivity fields not found.")
 
-            # Generate composite mask.
-            try:
-                cmask = cluttercal.composite_mask(date, timedelta=7, indir=outpath, prefix=prefix)
-            except ValueError:
-                cmask = cluttercal.single_mask(date, indir=outpath, prefix=prefix)
+        print(crayons.yellow(f"{len(namelist)} files to process for {date}."))
 
-            # Extract the clutter reflectivity for the given date.
-            arglist = [(f, cmask) for f in namelist]
-            bag = db.from_sequence(arglist).starmap(buffer)
-            rslt = bag.compute()
+        # Generate clutter mask for the given date.
+        datestr = date.strftime("%Y%m%d")
+        outpath = os.path.join(OUTPATH, "cmasks")
+        mkdir(outpath)
+        outpath = os.path.join(outpath, f"{RID}")
+        mkdir(outpath)
+        output_maskfile = os.path.join(outpath, prefix + f"{datestr}.nc")
+        try:
+            gen_cmask(namelist, output_maskfile, refl_name=refl_name)
+        except ValueError:
+            pass
 
-            saved = False
-            if rslt is not None:
-                rslt = [r for r in rslt if r is not None]
-                if len(rslt) != 0:
-                    ttmp, rtmp = zip(*rslt)
-                    rca = np.array(rtmp)
-                    dtime = np.array(ttmp, dtype="datetime64")
+        # Generate composite mask.
+        try:
+            cmask = cluttercal.composite_mask(date, timedelta=7, indir=outpath, prefix=prefix)
+        except ValueError:
+            cmask = cluttercal.single_mask(date, indir=outpath, prefix=prefix)
 
-                    if len(rca) != 0:
-                        df = pd.DataFrame({"rca": rca}, index=dtime)
-                        savedata(df, date, path=OUTPATH)
-                        saved = True
+        # Extract the clutter reflectivity for the given date.
+        arglist = [(f, cmask, refl_name) for f in namelist]
+        bag = db.from_sequence(arglist).starmap(buffer)
+        rslt = bag.compute()
 
-            if saved:
-                print(crayons.green(f"Radar {RID} processed and RCA saved."))
-            else:
-                print(crayons.yellow(f"No data for radar {RID} for {date}."))
+        saved = False
+        if rslt is not None:
+            rslt = [r for r in rslt if r is not None]
+            if len(rslt) != 0:
+                ttmp, rtmp = zip(*rslt)
+                rca = np.array(rtmp)
+                dtime = np.array(ttmp, dtype="datetime64")
+
+                if len(rca) != 0:
+                    df = pd.DataFrame({"rca": rca}, index=dtime)
+                    savedata(df, date, path=OUTPATH)
+                    saved = True
+
+        if saved:
+            print(crayons.green(f"Radar {RID} processed and RCA saved."))
+        else:
+            print(crayons.yellow(f"No data for radar {RID} for {date}."))
 
         # Removing unzipped files, collecting memory garbage.
         remove(namelist)
@@ -326,9 +334,6 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "-e", "--end-date", dest="end_date", type=str, help="Right bound for generating dates.", required=True
-    )
-    parser.add_argument(
-        "-n", "--name-dbz", dest="refl_name", type=str, default="TH", help="Radar uncorrected reflectivity name.",
     )
     parser.add_argument(
         "-r",
@@ -356,12 +361,12 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
-    RID = args.rid
-    START_DATE = args.start_date
-    END_DATE = args.end_date
-    OUTPATH = args.output
-    REFL_NAME = args.refl_name
-    REFL_THLD = args.refl_thld
+    RID: int = args.rid
+    START_DATE: str = args.start_date
+    END_DATE: str = args.end_date
+    OUTPATH: str = args.output
+    REFL_NAME: Tuple[str, str] = ("TH", "DBZH")
+    REFL_THLD: int = args.refl_thld
     ZIPDIR = "/scratch/kl02/vhl548/unzipdir/"
 
     mkdir(OUTPATH)
