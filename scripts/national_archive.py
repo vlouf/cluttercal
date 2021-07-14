@@ -15,7 +15,6 @@ National archive.
     extract_zip
     gen_cmask
     get_radar_archive_file
-    mkdir
     remove
     savedata
     main
@@ -166,7 +165,7 @@ def gen_cmask(radar_file_list: List[str], outputfile: str, refl_name:str) -> Non
     return None
 
 
-def get_radar_archive_file(date) -> str:
+def get_radar_archive_file(date: pd.Timestamp) -> str:
     """
     Return the archive containing the radar file for a given radar ID and a
     given date.
@@ -187,18 +186,6 @@ def get_radar_archive_file(date) -> str:
         return None
 
     return file
-
-
-def mkdir(path: str) -> None:
-    """
-    Create the DIRECTORY(ies), if they do not already exist
-    """
-    try:
-        os.mkdir(path)
-    except FileExistsError:
-        pass
-
-    return None
 
 
 def remove(flist: List[str]) -> None:
@@ -229,10 +216,8 @@ def savedata(df, date, path: str) -> None:
     """
     datestr = date.strftime("%Y%m%d")
 
-    path = os.path.join(path, "rca")
-    mkdir(path)
-    path = os.path.join(path, str(RID))
-    mkdir(path)
+    path = os.path.join(path, "rca", str(RID))
+    os.makedirs(path, exist_ok=True)
 
     outfilename = os.path.join(path, f"rca.{RID}.{datestr}.csv")
     df.to_csv(outfilename)
@@ -257,6 +242,10 @@ def main(date_range) -> None:
     date_range: Iter
         List of dates to process
     """
+    print(crayons.green(f"RCA processing for radar {RID}."))
+    print(crayons.green(f"Between {START_DATE} and {END_DATE}."))
+    print(crayons.green(f"Data will be saved in {OUTPATH}."))
+
     prefix = f"{RID}_"
     for date in date_range:
         # Get zip archive for given radar RID and date.
@@ -280,10 +269,8 @@ def main(date_range) -> None:
 
         # Generate clutter mask for the given date.
         datestr = date.strftime("%Y%m%d")
-        outpath = os.path.join(OUTPATH, "cmasks")
-        mkdir(outpath)
-        outpath = os.path.join(outpath, f"{RID}")
-        mkdir(outpath)
+        outpath = os.path.join(OUTPATH, "cmasks", str(RID))
+        os.makedirs(outpath, exist_ok=True)
         output_maskfile = os.path.join(outpath, prefix + f"{datestr}.nc")
         try:
             gen_cmask(namelist, output_maskfile, refl_name=refl_name)
@@ -360,16 +347,17 @@ if __name__ == "__main__":
         help="Clutter detection minimal reflectivity threshold in dBZ.",
     )
 
+    # Parser arguments
     args = parser.parse_args()
     RID: int = args.rid
     START_DATE: str = args.start_date
     END_DATE: str = args.end_date
     OUTPATH: str = args.output
-    REFL_NAME: Tuple[str, str] = ("TH", "DBZH")
     REFL_THLD: int = args.refl_thld
-    ZIPDIR = "/scratch/kl02/vhl548/unzipdir/"
 
-    mkdir(OUTPATH)
+    # Global parameters
+    REFL_NAME: Tuple[str, str] = ("TH", "DBZH")
+    ZIPDIR: str = "/scratch/kl02/vhl548/unzipdir/"
 
     if not check_rid():
         parser.error("Invalid Radar ID.")
@@ -383,13 +371,6 @@ if __name__ == "__main__":
         parser.error("Invalid dates.")
         sys.exit()
 
-    print(crayons.green(f"RCA processing for radar {RID}."))
-    print(crayons.green(f"Between {START_DATE} and {END_DATE}."))
-    print(crayons.green(f"Data will be saved in {OUTPATH}."))
-
-    tick = time.time()
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         main(date_range)
-    tock = time.time()
-    print(crayons.magenta(f"Process finished in {tock - tick:0.6}s."))
