@@ -22,7 +22,6 @@ National archive.
 import gc
 import os
 import sys
-import time
 import zipfile
 import argparse
 import warnings
@@ -84,7 +83,6 @@ def check_reflectivity(infile: str, refl_name: str) -> bool:
     try:
         _ = cluttercal.cluttercal.read_radar(infile, refl_name=refl_name)
     except KeyError:
-        print(f"Uncorrected reflectivity {refl_name} not found in {infile}.")
         is_good = False
     except Exception:
         traceback.print_exc()
@@ -263,7 +261,8 @@ def main(date_range) -> None:
                 break
 
         if refl_name is None:
-            raise ValueError("Given reflectivity fields not found.")
+            print("No valid reflectivity fields found at date {date}.")
+            continue
 
         print(crayons.yellow(f"{len(namelist)} files to process for {date}."))
 
