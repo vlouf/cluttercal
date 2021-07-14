@@ -243,8 +243,7 @@ def main(date_range) -> None:
     print(crayons.green(f"RCA processing for radar {RID}."))
     print(crayons.green(f"Between {START_DATE} and {END_DATE}."))
     print(crayons.green(f"Data will be saved in {OUTPATH}."))
-
-    prefix = f"{RID}_"
+    
     for date in date_range:
         # Get zip archive for given radar RID and date.
         zipfile = get_radar_archive_file(date)
@@ -270,7 +269,7 @@ def main(date_range) -> None:
         datestr = date.strftime("%Y%m%d")
         outpath = os.path.join(OUTPATH, "cmasks", str(RID))
         os.makedirs(outpath, exist_ok=True)
-        output_maskfile = os.path.join(outpath, prefix + f"{datestr}.nc")
+        output_maskfile = os.path.join(outpath, f"{RID}_{datestr}.nc")
         try:
             gen_cmask(namelist, output_maskfile, refl_name=refl_name)
         except ValueError:
@@ -278,9 +277,9 @@ def main(date_range) -> None:
 
         # Generate composite mask.
         try:
-            cmask = cluttercal.composite_mask(date, timedelta=7, indir=outpath, prefix=prefix)
+            cmask = cluttercal.composite_mask(date, timedelta=7, indir=outpath, prefix=f"{RID}_")
         except ValueError:
-            cmask = cluttercal.single_mask(date, indir=outpath, prefix=prefix)
+            cmask = cluttercal.single_mask(output_maskfile)            
 
         # Extract the clutter reflectivity for the given date.
         arglist = [(f, cmask, refl_name) for f in namelist]
