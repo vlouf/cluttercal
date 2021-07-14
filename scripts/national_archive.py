@@ -243,7 +243,7 @@ def main(date_range) -> None:
     print(crayons.green(f"RCA processing for radar {RID}."))
     print(crayons.green(f"Between {START_DATE} and {END_DATE}."))
     print(crayons.green(f"Data will be saved in {OUTPATH}."))
-    
+
     for date in date_range:
         # Get zip archive for given radar RID and date.
         zipfile = get_radar_archive_file(date)
@@ -261,6 +261,7 @@ def main(date_range) -> None:
 
         if refl_name is None:
             print("No valid reflectivity fields found at date {date}.")
+            remove(namelist)
             continue
 
         print(crayons.yellow(f"{len(namelist)} files to process for {date}."))
@@ -279,7 +280,14 @@ def main(date_range) -> None:
         try:
             cmask = cluttercal.composite_mask(date, timedelta=7, indir=outpath, prefix=f"{RID}_")
         except ValueError:
-            cmask = cluttercal.single_mask(output_maskfile)            
+            if os.path.exists(output_maskfile):
+                cmask = cluttercal.single_mask(output_maskfile)
+            else:
+                print(
+                    crayons.red(f"Problem with date {date} and radar {RID}. No mask file available: {output_maskfile}")
+                )
+                remove(namelist)
+                continue
 
         # Extract the clutter reflectivity for the given date.
         arglist = [(f, cmask, refl_name) for f in namelist]
