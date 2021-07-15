@@ -32,9 +32,12 @@ from typing import List, Tuple, Any
 import crayons
 import numpy as np
 import pandas as pd
-import dask.bag as db
+# import dask.bag as db
 
 import cluttercal
+
+from concurrent.futures import TimeoutError
+from pebble import ProcessPool, ProcessExpired
 
 
 def buffer(infile: str, cmask: str, refl_name: str) -> Tuple[Any, float]:
@@ -225,6 +228,76 @@ def savedata(df, date, path: str) -> None:
     return None
 
 
+def process_date(date):
+    zipfile = get_radar_archive_file(date)
+    if zipfile is None:
+        print(crayons.yellow(f"No file found for radar {RID} at date {date}."))
+        return None
+
+    # Unzip data/
+    namelist = extract_zip(zipfile, path=ZIPDIR)
+    refl_name = None
+    for name in REFL_NAME:
+        if check_reflectivity(namelist[0], refl_name=name):
+            refl_name = name
+            break
+
+    if refl_name is None:
+        print("No valid reflectivity fields found at date {date}.")
+        remove(namelist)
+        return None
+
+    print(crayons.yellow(f"{len(namelist)} files to process for {date}."))
+
+    # Generate clutter mask for the given date.
+    datestr = date.strftime("%Y%m%d")
+    outpath = os.path.join(OUTPATH, "cmasks", str(RID))
+    os.makedirs(outpath, exist_ok=True)
+    output_maskfile = os.path.join(outpath, f"{RID}_{datestr}.nc")
+    try:
+        gen_cmask(namelist, output_maskfile, refl_name=refl_name)
+    except ValueError:
+        pass
+
+    # Generate composite mask.
+    try:
+        cmask = cluttercal.composite_mask(date, timedelta=7, indir=outpath, prefix=f"{RID}_")
+    except ValueError:
+        if os.path.exists(output_maskfile):
+            cmask = cluttercal.single_mask(output_maskfile)
+        else:
+            print(
+                crayons.red(f"Problem with date {date} and radar {RID}. No mask file available: {output_maskfile}")
+            )
+            remove(namelist)
+            return None
+
+    # Extract the clutter reflectivity for the given date.
+    rslt = [buffer(f, cmask, refl_name) for f in namelist]    
+
+    saved = False
+    if rslt is not None:
+        rslt = [r for r in rslt if r is not None]
+        if len(rslt) != 0:
+            ttmp, rtmp = zip(*rslt)
+            rca = np.array(rtmp)
+            dtime = np.array(ttmp, dtype="datetime64")
+
+            if len(rca) != 0:
+                df = pd.DataFrame({"rca": rca}, index=dtime)
+                savedata(df, date, path=OUTPATH)
+                saved = True
+
+    if saved:
+        print(crayons.green(f"Radar {RID} processed and RCA saved."))
+    else:
+        print(crayons.yellow(f"No data for radar {RID} for {date}."))
+
+    # Removing unzipped files, collecting memory garbage.
+    remove(namelist)
+    return None
+
+
 def main(date_range) -> None:
     """
     Loop over dates:
@@ -244,77 +317,21 @@ def main(date_range) -> None:
     print(crayons.green(f"Between {START_DATE} and {END_DATE}."))
     print(crayons.green(f"Data will be saved in {OUTPATH}."))
 
-    for date in date_range:
-        # Get zip archive for given radar RID and date.
-        zipfile = get_radar_archive_file(date)
-        if zipfile is None:
-            print(crayons.yellow(f"No file found for radar {RID} at date {date}."))
-            continue
+    with ProcessPool(max_workers=16, max_tasks=2) as pool:
+        future = pool.map(process_date, date_range, timeout=180)
+        iterator = future.result()
 
-        # Unzip data/
-        namelist = extract_zip(zipfile, path=ZIPDIR)
-        refl_name = None
-        for name in REFL_NAME:
-            if check_reflectivity(namelist[0], refl_name=name):
-                refl_name = name
+        while True:
+            try:
+                _ = next(iterator)
+            except StopIteration:
                 break
-
-        if refl_name is None:
-            print("No valid reflectivity fields found at date {date}.")
-            remove(namelist)
-            continue
-
-        print(crayons.yellow(f"{len(namelist)} files to process for {date}."))
-
-        # Generate clutter mask for the given date.
-        datestr = date.strftime("%Y%m%d")
-        outpath = os.path.join(OUTPATH, "cmasks", str(RID))
-        os.makedirs(outpath, exist_ok=True)
-        output_maskfile = os.path.join(outpath, f"{RID}_{datestr}.nc")
-        try:
-            gen_cmask(namelist, output_maskfile, refl_name=refl_name)
-        except ValueError:
-            pass
-
-        # Generate composite mask.
-        try:
-            cmask = cluttercal.composite_mask(date, timedelta=7, indir=outpath, prefix=f"{RID}_")
-        except ValueError:
-            if os.path.exists(output_maskfile):
-                cmask = cluttercal.single_mask(output_maskfile)
-            else:
-                print(
-                    crayons.red(f"Problem with date {date} and radar {RID}. No mask file available: {output_maskfile}")
-                )
-                remove(namelist)
-                continue
-
-        # Extract the clutter reflectivity for the given date.
-        arglist = [(f, cmask, refl_name) for f in namelist]
-        bag = db.from_sequence(arglist).starmap(buffer)
-        rslt = bag.compute()
-
-        saved = False
-        if rslt is not None:
-            rslt = [r for r in rslt if r is not None]
-            if len(rslt) != 0:
-                ttmp, rtmp = zip(*rslt)
-                rca = np.array(rtmp)
-                dtime = np.array(ttmp, dtype="datetime64")
-
-                if len(rca) != 0:
-                    df = pd.DataFrame({"rca": rca}, index=dtime)
-                    savedata(df, date, path=OUTPATH)
-                    saved = True
-
-        if saved:
-            print(crayons.green(f"Radar {RID} processed and RCA saved."))
-        else:
-            print(crayons.yellow(f"No data for radar {RID} for {date}."))
-
-        # Removing unzipped files, collecting memory garbage.
-        remove(namelist)
-        gc.collect()
+            except TimeoutError as error:
+                print("function took longer than %d seconds" % error.args[1])
+            except ProcessExpired as error:
+                print("%s. Exit code: %d" % (error, error.exitcode))
+            except Exception:
+                traceback.print_exc()
 
     return None
 
