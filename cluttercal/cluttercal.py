@@ -5,7 +5,7 @@ title: rca.py
 author: Valentin Louf
 email: valentin.louf@bom.gov.au
 institution: Monash University and Bureau of Meteorology
-date: 14/07/2021
+date: 01/06/2022
 
 .. autosummary::
     :toctree: generated/
@@ -16,6 +16,7 @@ date: 14/07/2021
     extract_clutter
 """
 import os
+import warnings
 from typing import Tuple, Any
 
 import pyart
@@ -42,21 +43,25 @@ def read_radar(infile: str, refl_name: str) -> Tuple[np.ndarray, np.ndarray, np.
     radar: xr.Dataset
         Radar dataset, first elevation only.
     """
-    use_pyodim = False
-    if infile.lower().endswith((".h5", ".hdf", ".hdf5")):
-        try:
-            r = pyodim.read_odim(infile)
-            radar = r[0].compute()
-            use_pyodim = True
-        except Exception:
-            radar = pyart.aux_io.read_odim_h5(infile, file_field_names=True, include_fields=[refl_name])
-    else:
-        radar = pyart.io.read(infile, include_fields=[refl_name])
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
 
-    try:
-        _ = radar[refl_name].values
-    except KeyError:
-        raise KeyError(f"Problem with {os.path.basename(infile)}: uncorrected reflectivity not present.")
+        use_pyodim = False
+        if infile.lower().endswith((".h5", ".hdf", ".hdf5")):
+            try:
+                r = pyodim.read_odim(infile)
+                radar = r[0].compute()
+                use_pyodim = True
+            except Exception:
+                radar = pyart.aux_io.read_odim_h5(infile, file_field_names=True, include_fields=[refl_name])
+        else:
+            radar = pyart.io.read(infile, include_fields=[refl_name])
+
+    if use_pyodim:
+        try:
+            _ = radar[refl_name].values
+        except KeyError:
+            raise KeyError(f"Problem with {os.path.basename(infile)}: uncorrected reflectivity not present.")
 
     if use_pyodim:
         r = radar.range.values
