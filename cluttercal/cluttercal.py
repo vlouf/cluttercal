@@ -19,8 +19,6 @@ import os
 import warnings
 from typing import Tuple, Any
 
-import pyart
-import cftime
 import pyodim
 import numpy as np
 import pandas as pd
@@ -29,7 +27,7 @@ import xarray as xr
 
 def read_radar(infile: str, refl_name: str) -> Tuple[np.ndarray, np.ndarray, np.ndarray, Any]:
     """
-    Read radar data using pyodim or pyart depending on the radar format.
+    Read radar data.
 
     Parameters:
     ===========
@@ -46,24 +44,13 @@ def read_radar(infile: str, refl_name: str) -> Tuple[np.ndarray, np.ndarray, np.
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
 
-        use_pyodim = False
-        if infile.lower().endswith((".h5", ".hdf", ".hdf5")):
-            try:
-                r = pyodim.read_odim(infile)
-                radar = r[0].compute()
-                use_pyodim = True
-            except Exception:
-                radar = pyart.aux_io.read_odim_h5(infile, file_field_names=True, include_fields=[refl_name])
-        else:
-            radar = pyart.io.read(infile, include_fields=[refl_name])
-
-    if use_pyodim:
+        r = pyodim.read_odim(infile)
+        radar = r[0].compute()
         try:
             _ = radar[refl_name].values
         except KeyError:
             raise KeyError(f"Problem with {os.path.basename(infile)}: uncorrected reflectivity not present.")
 
-    if use_pyodim:
         r = radar.range.values
         azi = np.round(radar.azimuth.values % 360).astype(int)
         dtime = radar.time[0].values
@@ -72,15 +59,6 @@ def read_radar(infile: str, refl_name: str) -> Tuple[np.ndarray, np.ndarray, np.
             refl = refl.filled(np.NaN)
         except Exception:
             pass
-    else:
-        elev = radar.elevation["data"]
-        lowest_tilt = np.argmin([elev[i][0] for i in radar.iter_slice()])
-        sl = radar.get_slice(lowest_tilt)
-
-        r = radar.range["data"]
-        azi = np.round(radar.azimuth["data"][sl] % 360).astype(int)
-        refl = radar.fields[refl_name]["data"][sl].filled(np.NaN)
-        dtime = cftime.num2pydate(radar.time["data"][0], radar.time["units"])
 
     return r, azi, refl, dtime
 
