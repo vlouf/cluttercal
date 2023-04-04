@@ -124,9 +124,8 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# PBS files.
-*.pbs
-*.pbs.*
+# Example subdir
+example/*/
 
 # VSCode and notebooks
 .vscode
