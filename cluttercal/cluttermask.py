@@ -28,7 +28,10 @@ import xarray as xr
 import dask.bag as db
 
 
-def read_radar(infile: str, refl_name: str) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+def read_radar(
+        infile: str,
+        refl_names: list,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     Read radar data using pyodim or pyart depending on the radar format.
 
@@ -36,8 +39,8 @@ def read_radar(infile: str, refl_name: str) -> Tuple[np.ndarray, np.ndarray, np.
     ===========
     infile: str
         Input file
-    refl_name: str
-        Uncorrected reflectivity field name.
+    refl_names: str
+        List of uncorrected reflectivity field names (in priority order).
 
     Returns:
     ========
@@ -51,14 +54,14 @@ def read_radar(infile: str, refl_name: str) -> Tuple[np.ndarray, np.ndarray, np.
             radar = r[0].compute()
             use_pyodim = True
         except Exception:
-            radar = pyart.aux_io.read_odim_h5(infile, file_field_names=True, include_fields=[refl_name])
+            radar = pyart.aux_io.read_odim_h5(infile, file_field_names=True, include_fields=refl_name)
     else:
-        radar = pyart.io.read(infile, include_fields=[refl_name])
+        radar = pyart.io.read(infile, include_fields=refl_names)
 
     try:
-        _ = radar[refl_name].values
-    except KeyError:
-        raise KeyError(f"Problem with {os.path.basename(infile)}: uncorrected reflectivity not present.")
+        refl_name = next(name for name in refl_names if name in radar)
+    except StopIteration:
+        raise KeyError(f"Problem with {os.path.basename(infile)}: uncorrected reflectivity {refl_names} not present.")
 
     if use_pyodim:
         r = radar.range.values
@@ -119,7 +122,10 @@ def get_metadata(infile: str) -> Dict:
 
 
 def find_clutter_pos(
-    infile: str, refl_name: str = "TH", refl_threshold: float = 40, max_range: float = 20e3
+        infile: str,
+        refl_names: list = ["TH"],
+        refl_threshold: float = 40,
+        max_range: float = 20e3,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     Find high reflectivity pixels in the lowest tilt of the radar scan.
@@ -128,7 +134,7 @@ def find_clutter_pos(
     ==========
     infile: str
         Input radar file
-    refl_name: str
+    refl_names: str
         Uncorrected reflectivity field name.
     refl_threshold: float
         Minimum reflectivity value threshold.
@@ -145,7 +151,7 @@ def find_clutter_pos(
         Reflectivity value of clutter pixels.
     """
     try:
-        r, azi, refl = read_radar(infile, refl_name)
+        r, azi, refl = read_radar(infile, refl_names)
     except Exception:
         traceback.print_exc()
         return None
@@ -166,7 +172,7 @@ def find_clutter_pos(
 def clutter_mask(
     radar_file_list: List,
     output: str = None,
-    refl_name: str = "TH",
+    refl_names: list = ["TH"],
     refl_threshold: float = 50,
     max_range: float = 20e3,
     freq_threshold: float = 50,
@@ -181,7 +187,7 @@ def clutter_mask(
         List of radar files.
     output: str
         If output is defined, will saved the mask, otherwise it will return the mask.
-    refl_name: str
+    refl_names: str
         Uncorrected reflectivity field name.
     refl_threshold: float
         Minimum reflectivity value threshold.
@@ -199,13 +205,14 @@ def clutter_mask(
     """
     argslist = []
     for f in radar_file_list:
-        argslist.append((f, refl_name, refl_threshold, max_range))
+        argslist.append((f, refl_names, refl_threshold, max_range))
 
     if use_dask:
         bag = db.from_sequence(argslist).starmap(find_clutter_pos)
         rslt = bag.compute()
     else:
-        rslt = [find_clutter_pos(d) for d in radar_file_list]
+        rslt = [find_clutter_pos(d, refl_names, refl_threshold, max_range)
+                for d in radar_file_list]
 
     rslt = [r for r in rslt if r is not None]
     if len(rslt) == 0:

@@ -83,7 +83,7 @@ def check_reflectivity(infile: str) -> bool:
     """
     is_good = True
     try:
-        _ = cluttercal.cluttercal.read_radar(infile, refl_name=REFL_NAME)
+        _ = cluttercal.cluttercal.read_radar(infile, refl_names=[REFL_NAME])
     except KeyError:
         print(f"Uncorrected reflectivity {REFL_NAME} not found in {infile}.")
         is_good = False
@@ -148,7 +148,7 @@ def gen_cmask(radar_file_list: List[str], outputfile: str) -> None:
     try:
         cmask = cluttercal.clutter_mask(
             radar_file_list,
-            refl_name=REFL_NAME,
+            refl_names=[REFL_NAME],
             refl_threshold=REFL_THLD,
             max_range=20e3,
             freq_threshold=50,
