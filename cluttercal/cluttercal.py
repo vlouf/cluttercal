@@ -25,7 +25,10 @@ import pandas as pd
 import xarray as xr
 
 
-def read_radar(infile: str, refl_name: str) -> Tuple[np.ndarray, np.ndarray, np.ndarray, Any]:
+def read_radar(
+        infile: str,
+        refl_names: list,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, Any]:
     """
     Read radar data.
 
@@ -33,8 +36,8 @@ def read_radar(infile: str, refl_name: str) -> Tuple[np.ndarray, np.ndarray, np.
     ===========
     infile: str
         Input file
-    refl_name: str
-        Uncorrected reflectivity field name.
+    refl_names: str
+        List of uncorrected reflectivity field names (in priority order).
 
     Returns:
     ========
@@ -47,9 +50,9 @@ def read_radar(infile: str, refl_name: str) -> Tuple[np.ndarray, np.ndarray, np.
         r = pyodim.read_odim(infile)
         radar = r[0].compute()
         try:
-            _ = radar[refl_name].values
-        except KeyError:
-            raise KeyError(f"Problem with {os.path.basename(infile)}: uncorrected reflectivity not present.")
+            refl_name = next(name for name in refl_names if name in radar)
+        except StopIteration:
+            raise KeyError(f"Problem with {os.path.basename(infile)}: uncorrected reflectivity {refl_names} not present.")
 
         r = radar.range.values
         azi = np.round(radar.azimuth.values % 360).astype(int)
@@ -137,7 +140,11 @@ def single_mask(mask_file: str) -> np.ndarray:
     return cmask
 
 
-def extract_clutter(infile: str, clutter_mask: np.ndarray, refl_name: str = "TH") -> Tuple[Any, float]:
+def extract_clutter(
+        infile: str,
+        clutter_mask: np.ndarray,
+        refl_names: list = ["TH"],
+) -> Tuple[Any, float]:
     """
     Extract the clutter and compute the RCA value.
 
@@ -147,8 +154,8 @@ def extract_clutter(infile: str, clutter_mask: np.ndarray, refl_name: str = "TH"
         Input radar file.
     clutter_mask: numpy.array(float)
         Clutter mask (360 deg x 20 km)
-    refl_name: str
-        Uncorrected reflectivity field name.
+    refl_names: list
+        List of uncorrected reflectivity field names (in priority order).
 
     Returns:
     --------
@@ -158,7 +165,7 @@ def extract_clutter(infile: str, clutter_mask: np.ndarray, refl_name: str = "TH"
         95th percentile of the clutter reflectivity.
     """
     # Radar data.
-    r, azi, reflectivity, dtime = read_radar(infile, refl_name)
+    r, azi, reflectivity, dtime = read_radar(infile, refl_names)
     refl = reflectivity[:, r < 20e3]
     zclutter = np.zeros_like(refl) + np.NaN
 
