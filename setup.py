@@ -38,6 +38,6 @@ setup(
     ],
     keywords="radar weather meteorology calibration",
     packages=find_packages(exclude=["contrib", "docs", "tests"]),
-    install_requires=["numpy", "pandas", "netCDF4", "dask", "xarray", "pyodim"],
+    install_requires=["numpy", "pandas", "dask", "xarray", "pyodim"],
     project_urls={"Source": "https://github.com/vlouf/cluttercal/",},
 )

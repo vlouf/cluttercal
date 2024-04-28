@@ -6,14 +6,13 @@ The Relative Clutter Adjustment (RCA) technique is used for radar calibration mo
 
 - numpy
 - pandas 
-- netCDF4
 - xarray
 - dask
 - pyodim
 
 These libraries can be installed using pip:
 ```
-pip install numpy pandas netCDF4 xarray dask
+pip install numpy pandas xarray dask
 ```
 
 In addition, you will need to install the cluttercal and pyodim libraries from Github:
