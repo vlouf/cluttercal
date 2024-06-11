@@ -17,7 +17,7 @@ with open(path.join(here, "README.md"), encoding="utf-8") as f:
 
 setup(
     name="cluttercal",
-    version="1.0.0",
+    version="1.1.0",
     description="Radar monitoring of calibration using ground clutter reflectivity.",
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -38,6 +38,6 @@ setup(
     ],
     keywords="radar weather meteorology calibration",
     packages=find_packages(exclude=["contrib", "docs", "tests"]),
-    install_requires=["numpy", "pandas", "netCDF4", "dask", "xarray", "pyodim"],
+    install_requires=["numpy", "pandas", "dask", "xarray", "pyodim"],
     project_urls={"Source": "https://github.com/vlouf/cluttercal/",},
 )
