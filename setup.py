@@ -17,7 +17,7 @@ with open(path.join(here, "README.md"), encoding="utf-8") as f:
 
 setup(
     name="cluttercal",
-    version="1.0.0",
+    version="1.1.0",
     description="Radar monitoring of calibration using ground clutter reflectivity.",
     long_description=long_description,
     long_description_content_type="text/markdown",
