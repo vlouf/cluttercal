@@ -140,22 +140,26 @@ def single_mask(mask_file: str) -> np.ndarray:
 
 def extract_clutter(
     infile: str, clutter_mask: np.ndarray, refl_name: str = "TH", maxrange: float = 20e3, detailed_info: bool = False
-) -> Union[Tuple[np.datetime64, float], Tuple[np.datetime64, float, pd.DataFrame]]:
+) -> Union[Tuple[np.datetime64, float], xr.Dataset]:
     """
-    Extract ground clutter from a radar file and compute the Reflectivity Clutter Analysis (RCA) value.
+    Extract ground clutter from a radar file and compute the Reflectivity 
+    Clutter Analysis (RCA) value.
 
     Parameters:
     -----------
     infile : str
         Path to the input radar file.
     clutter_mask : numpy.ndarray
-        2D array representing the clutter mask (dimensions: 360 degrees x 20 km range).
+        2D array representing the clutter mask (dimensions: 360 degrees x 20 km 
+        range).
     refl_name : str, optional
-        Name of the uncorrected reflectivity field in the radar dataset. Defaults to "TH".
+        Name of the uncorrected reflectivity field in the radar dataset. 
+        Defaults to "TH".
     maxrange : float, optional
         Maximum range for clutter extraction in meters. Defaults to 20 km.
     detailed_info : bool, optional
-        If True, returns additional metadata including statistical properties of the extracted clutter.
+        If True, returns additional metadata including statistical properties 
+        of the extracted clutter.
 
     Returns:
     --------
@@ -163,8 +167,9 @@ def extract_clutter(
         Timestamp extracted from the input radar file.
     rca : float
         95th percentile of the extracted clutter reflectivity.
-    detailed_stats : pd.DataFrame, optional
-        If `detailed_info=True`, returns a DataFrame with additional information on the clutter.
+    detailed_stats : xr.Dataset, optional
+        If `detailed_info=True`, returns a Dataset containing additional 
+        clutter-related metadata.
     """
 
     # Radar data.
@@ -178,25 +183,28 @@ def extract_clutter(
     A = (np.round(A) % 360).astype(int)
 
     # Mask.
-    RC, AC = np.meshgrid(np.arange(nr), np.arange(360))
+    RC, AC = np.meshgrid(np.arange(nr), azi)
 
     zclutter = np.zeros_like(refl) + np.nan
-    rclut = np.zeros_like(refl) + np.nan
-    aclut = np.zeros_like(refl) + np.nan
     npos = np.where(clutter_mask)
     for ir, ia in zip(RC[npos], AC[npos]):
         pos = (R == ir) & (A == ia)
         zclutter[pos] = refl[pos]
-        rclut[pos] = R[pos]
-        aclut[pos] = A[pos]
+
+    if detailed_info:
+        dset = xr.Dataset({
+            "time": (("time"), [dtime]),
+            "range": (("range"), r),
+            "azimuth": (("azimuth"), azi),
+            "zclutter": (("azimuth", "range"), zclutter)
+        })
 
     try:
         pos_valid = ~np.isnan(zclutter)
         zclutter = zclutter[pos_valid]
         rca = np.percentile(zclutter, 95)
         if detailed_info:
-            df = pd.DataFrame({"zclutter": zclutter, "r": rclut[pos_valid], "azi": aclut[pos_valid]})
-            return dtime, rca, df
+            return dset.merge({"rca": (("time"), [rca])})
     except IndexError:
         # Empty array full of nan.
         raise ValueError("All the clutter points are nan.")
