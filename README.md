@@ -27,9 +27,9 @@ An example Jupyter notebook is available in the `example` directory. This notebo
 
 ## References
 
-If you use this code in your research, please cite the following paper:
+If you incorporate this code into your research, please cite the following paper, which details the algorithm used:
 
-- Louf, V., A. Protat, R. A. Warren, S. M. Collis, D. B. Wolff, S. Raunyiar, C. Jakob, and W. A. Petersen, 2018: An integrated approach to weather radar calibration and monitoring using ground clutter and satellite comparisons. J. Atmos. Ocean. Technol., JTECH-D-18-0007.1, doi:10.1175/JTECH-D-18-0007.1. [http://journals.ametsoc.org/doi/10.1175/JTECH-D-18-0007.1]
+- Louf, V., & Protat, A. (2023). Real-time Monitoring of Weather Radar Network Calibration and Antenna Pointing. Journal of Atmospheric and Oceanic Technology. https://doi.org/10.1175/JTECH-D-22-0118.1
 
 ## License
 
