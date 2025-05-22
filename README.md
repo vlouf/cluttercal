@@ -12,7 +12,7 @@ The Relative Clutter Adjustment (RCA) technique is used for radar calibration mo
 
 These libraries can be installed using pip:
 ```
-pip install numpy pandas xarray dask
+pip install numpy pandas xarray dask pyodim
 ```
 
 In addition, you will need to install the cluttercal and pyodim libraries from Github:
