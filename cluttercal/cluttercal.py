@@ -5,7 +5,7 @@ title: rca.py
 author: Valentin Louf
 email: valentin.louf@bom.gov.au
 institution: Monash University and Bureau of Meteorology
-date: 01/06/2022
+date: 22/05/2025
 
 .. autosummary::
     :toctree: generated/
@@ -15,9 +15,10 @@ date: 01/06/2022
     single_mask
     extract_clutter
 """
+
 import os
 import warnings
-from typing import Tuple, Any
+from typing import Tuple, Any, Union
 
 import pyodim
 import numpy as np
@@ -137,49 +138,67 @@ def single_mask(mask_file: str) -> np.ndarray:
     return cmask
 
 
-def extract_clutter(infile: str, clutter_mask: np.ndarray, refl_name: str = "TH") -> Tuple[Any, float]:
+def extract_clutter(
+    infile: str, clutter_mask: np.ndarray, refl_name: str = "TH", maxrange: float = 20e3, detailed_info: bool = False
+) -> Union[Tuple[np.datetime64, float], Tuple[np.datetime64, float, pd.DataFrame]]:
     """
-    Extract the clutter and compute the RCA value.
+    Extract ground clutter from a radar file and compute the Reflectivity Clutter Analysis (RCA) value.
 
     Parameters:
     -----------
-    infile: str
-        Input radar file.
-    clutter_mask: numpy.array(float)
-        Clutter mask (360 deg x 20 km)
-    refl_name: str
-        Uncorrected reflectivity field name.
+    infile : str
+        Path to the input radar file.
+    clutter_mask : numpy.ndarray
+        2D array representing the clutter mask (dimensions: 360 degrees x 20 km range).
+    refl_name : str, optional
+        Name of the uncorrected reflectivity field in the radar dataset. Defaults to "TH".
+    maxrange : float, optional
+        Maximum range for clutter extraction in meters. Defaults to 20 km.
+    detailed_info : bool, optional
+        If True, returns additional metadata including statistical properties of the extracted clutter.
 
     Returns:
     --------
-    dtime: np.datetime64
-        Datetime of infile
-    rca: float
-        95th percentile of the clutter reflectivity.
+    dtime : np.datetime64
+        Timestamp extracted from the input radar file.
+    rca : float
+        95th percentile of the extracted clutter reflectivity.
+    detailed_stats : pd.DataFrame, optional
+        If `detailed_info=True`, returns a DataFrame with additional information on the clutter.
     """
+
     # Radar data.
     r, azi, reflectivity, dtime = read_radar(infile, refl_name)
-    refl = reflectivity[:, r < 20e3]
-    zclutter = np.zeros_like(refl) + np.nan
+    nr = maxrange // 1000  # 1km bins.
+    refl = reflectivity[:, r < maxrange]
 
-    r = r[r < 20e3]
+    r = r[r < maxrange]
     R, A = np.meshgrid(r, azi)
     R = (R // 1000).astype(int)
     A = (np.round(A) % 360).astype(int)
 
     # Mask.
-    RC, AC = np.meshgrid(np.arange(20), np.arange(360))
+    RC, AC = np.meshgrid(np.arange(nr), np.arange(360))
 
+    zclutter = np.zeros_like(refl) + np.nan
+    rclut = np.zeros_like(refl) + np.nan
+    aclut = np.zeros_like(refl) + np.nan
     npos = np.where(clutter_mask)
     for ir, ia in zip(RC[npos], AC[npos]):
         pos = (R == ir) & (A == ia)
         zclutter[pos] = refl[pos]
+        rclut[pos] = R[pos]
+        aclut[pos] = A[pos]
 
     try:
-        zclutter = zclutter[~np.isnan(zclutter)]
+        pos_valid = ~np.isnan(zclutter)
+        zclutter = zclutter[pos_valid]
         rca = np.percentile(zclutter, 95)
+        if detailed_info:
+            df = pd.DataFrame({"zclutter": zclutter, "r": rclut[pos_valid], "azi": aclut[pos_valid]})
+            return dtime, rca, df
     except IndexError:
         # Empty array full of nan.
-        raise ValueError("All clutter is nan.")
+        raise ValueError("All the clutter points are nan.")
 
     return dtime, rca
