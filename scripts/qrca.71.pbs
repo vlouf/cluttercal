@@ -1,0 +1,13 @@
+#!/bin/bash
+#PBS -P kl02
+#PBS -q normalbw
+#PBS -l walltime=2:00:00
+#PBS -l mem=64GB
+#PBS -l wd
+#PBS -l jobfs=1GB
+#PBS -l ncpus=16
+#PBS -lstorage=scratch/kl02+gdata/rq0
+
+source activate radar
+
+python national_archive.py -t 40 -r 71 -s 20180913 -e 20191231

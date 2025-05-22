@@ -57,7 +57,7 @@ def read_radar(infile: str, refl_name: str) -> Tuple[np.ndarray, np.ndarray, np.
         azi = np.round(radar.azimuth.values % 360).astype(int)
         refl = radar[refl_name].values
         try:
-            refl = refl.filled(np.NaN)
+            refl = refl.filled(np.nan)
         except Exception:
             pass
 
@@ -188,7 +188,7 @@ def clutter_mask(
     na = 360
 
     cmask = np.zeros((len(rslt), na, nr))
-    zmask = np.zeros((len(rslt), na, nr)) + np.NaN
+    zmask = np.zeros((len(rslt), na, nr)) + np.nan
 
     for idx, (r, a, refl) in enumerate(rslt):
         rpos = (r // 1000).astype(int)

@@ -56,7 +56,7 @@ def read_radar(infile: str, refl_name: str) -> Tuple[np.ndarray, np.ndarray, np.
         dtime = radar.time[0].values
         refl = radar[refl_name].values
         try:
-            refl = refl.filled(np.NaN)
+            refl = refl.filled(np.nan)
         except Exception:
             pass
 
@@ -160,7 +160,7 @@ def extract_clutter(infile: str, clutter_mask: np.ndarray, refl_name: str = "TH"
     # Radar data.
     r, azi, reflectivity, dtime = read_radar(infile, refl_name)
     refl = reflectivity[:, r < 20e3]
-    zclutter = np.zeros_like(refl) + np.NaN
+    zclutter = np.zeros_like(refl) + np.nan
 
     r = r[r < 20e3]
     R, A = np.meshgrid(r, azi)
@@ -179,7 +179,7 @@ def extract_clutter(infile: str, clutter_mask: np.ndarray, refl_name: str = "TH"
         zclutter = zclutter[~np.isnan(zclutter)]
         rca = np.percentile(zclutter, 95)
     except IndexError:
-        # Empty array full of NaN.
-        raise ValueError("All clutter is NaN.")
+        # Empty array full of nan.
+        raise ValueError("All clutter is nan.")
 
     return dtime, rca
